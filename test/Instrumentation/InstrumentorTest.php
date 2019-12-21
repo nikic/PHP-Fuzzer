@@ -24,6 +24,9 @@ function test() {
         }
     }
 }
+interface Foo {
+    public function bar();
+}
 CODE;
 
         $expected = <<<'CODE'
@@ -76,6 +79,10 @@ function test()
     $___key = \InstrumentationContext::$prevBlock << 32 | 11;
     \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
     \InstrumentationContext::$prevBlock = 11;
+}
+interface Foo
+{
+    public function bar();
 }
 CODE;
 

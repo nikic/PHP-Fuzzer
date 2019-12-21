@@ -49,10 +49,12 @@ final class Fuzzer {
         }
 
         $mutationDepthLimit = 5;
-        for ($i = 0; $i < 10000; $i++) {
+        $maxRuns = 20000;
+        for ($i = 0; $i < $maxRuns; $i++) {
             $input = $this->corpus->getRandomInput($this->rng) ?? "";
+            $crossOverInput = $this->corpus->getRandomInput($this->rng);
             for ($m = 0; $m < $mutationDepthLimit; $m++) {
-                $input = $this->mutator->mutate($input);
+                $input = $this->mutator->mutate($input, $crossOverInput);
                 $entry = $this->runTarget($target, $input);
                 if ($this->corpus->isInteresting($entry)) {
                     $this->corpus->addEntry($entry);

@@ -7,7 +7,12 @@ final class RNG {
         return \mt_rand(0, $maxExclusive - 1);
     }
 
+    public function randomIntRange(int $minInclusive, $maxInclusive): int {
+        return \mt_rand($minInclusive, $maxInclusive);
+    }
+
     public function randomChar(): string {
+        // TODO: Biasing?
         return \chr($this->randomInt(256));
     }
 
@@ -25,5 +30,9 @@ final class RNG {
 
     public function randomElement(array $array) {
         return $array[$this->randomInt(\count($array))];
+    }
+
+    public function randomBool(): bool {
+        return (bool) \mt_rand(0, 1);
     }
 }

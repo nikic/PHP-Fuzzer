@@ -26,6 +26,10 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\TryCatch ||
             $node instanceof Stmt\While_
         ) {
+            if ($node->stmts === null) {
+                return null;
+            }
+
             $this->prependInlineBlockStub($node->stmts);
             return null;
         }
