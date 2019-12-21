@@ -5,50 +5,30 @@ namespace PhpFuzzer;
 use PhpFuzzer\Mutation\RNG;
 
 final class Corpus {
-    private string $dir;
     /** @var CorpusEntry[] */
     private array $entries = [];
     private array $seenEdges = [];
 
-    public function __construct(string $dir) {
-        $this->dir = $dir;
-        if (!is_dir($this->dir)) {
-            throw new \Exception('Corpus directory "' . $this->dir . '" does not exist');
+    public function isInteresting(CorpusEntry $entry): bool {
+        if ($entry->crashInfo) {
+            // Crashes are always interesting for now.
+            return true;
         }
-    }
 
-    public function loadCorpus(): void {
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->dir),
-            \RecursiveIteratorIterator::LEAVES_ONLY
-        );
-        foreach ($it as $file) {
-            if ($file->isFile()) {
-                // TODO: Wrong place.
-            }
-        }
-    }
-
-    public function addInput(string $input, array $edgeCounts): void {
-        $entry = new CorpusEntry($input, $edgeCounts);
-
-        $isInteresting = false;
+        // Check if we saw any new edges.
         foreach ($entry->edgeCounts as $edge => $_count) {
             if (!isset($this->seenEdges[$edge])) {
-                $isInteresting = true;
-                $this->seenEdges[$edge] = true;
+                return true;
             }
         }
-
-        if ($isInteresting) {
-            $this->addEntry($entry);
-        }
+        return false;
     }
 
-    private function addEntry(CorpusEntry $entry) {
+    public function addEntry(CorpusEntry $entry) {
         $this->entries[] = $entry;
-        $entry->path = $this->dir . '/' . md5($entry->input) . '.txt';
-        file_put_contents($entry->path, $entry->input);
+        foreach ($entry->edgeCounts as $edge => $_count) {
+            $this->seenEdges[$edge] = true;
+        }
     }
 
     // TODO: This doesn't really belong here?
