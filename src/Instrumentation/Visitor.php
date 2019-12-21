@@ -47,10 +47,33 @@ final class Visitor extends NodeVisitorAbstract {
             return [$node, ...$this->generateInlineBlockStub()];
         }
 
-        // TODO: BinaryOp\And, BinaryOp\Or
-        // TODO: Ternary, BinaryOp\Coalesce, AssignOp\Coalesce
-        // TODO: Yield, YieldFrom
-        // TODO: Comparison instrumentation
+        // For short-circuiting operators, insert a tracing call into one branch.
+        if ($node instanceof Expr\BinaryOp\BooleanAnd ||
+            $node instanceof Expr\BinaryOp\BooleanOr ||
+            $node instanceof Expr\BinaryOp\LogicalAnd ||
+            $node instanceof Expr\BinaryOp\LogicalOr ||
+            $node instanceof Expr\BinaryOp\Coalesce ||
+            $node instanceof Expr\AssignOp\Coalesce
+        ) {
+            $node->right = $this->generateTracingCall($node->right);
+            return null;
+        }
+
+        // Same as previous case, just different subnode name.
+        if ($node instanceof Expr\Ternary) {
+            $node->else = $this->generateTracingCall($node->else);
+            return null;
+        }
+
+        // Wrap the yield, so that a tracing call occurs after the yield resumes.
+        if ($node instanceof Expr\Yield_ ||
+            $node instanceof Expr\YieldFrom
+        ) {
+            return $this->generateTracingCall($node);
+        }
+
+        // TODO: Comparison instrumentation?
+        // TODO: Avoid redundant instrumentation?
         return null;
     }
 
@@ -68,10 +91,10 @@ final class Visitor extends NodeVisitorAbstract {
         // TODO: It probably makes sense to switch this to something that can be pre-initialized.
         $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
         $keyVar = new Expr\Variable('___key');
-        $instrumentationContext = new Node\Name\FullyQualified($this->context->runtimeContextName);
-        $edgesVar = new Expr\StaticPropertyFetch($instrumentationContext, 'edges');
+        $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
+        $edgesVar = new Expr\StaticPropertyFetch($context, 'edges');
         $edgesKeyVar = new Expr\ArrayDimFetch($edgesVar, $keyVar);
-        $prevBlockVar = new Expr\StaticPropertyFetch($instrumentationContext, 'prevBlock');
+        $prevBlockVar = new Expr\StaticPropertyFetch($context, 'prevBlock');
         return [
             new Stmt\Expression(
                 new Expr\Assign($keyVar, new Expr\BinaryOp\BitwiseOr(
@@ -98,5 +121,14 @@ final class Visitor extends NodeVisitorAbstract {
                 new Expr\Assign($prevBlockVar, $blockIndex)
             ),
         ];
+    }
+
+    private function generateTracingCall(Expr $origExpr): Expr {
+        $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
+        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
+        return new Expr\StaticCall($context, 'traceBlock', [
+            new Node\Arg($blockIndex),
+            new Node\Arg($origExpr),
+        ]);
     }
 }

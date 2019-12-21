@@ -10,4 +10,10 @@ final class FuzzingContext {
         self::$prevBlock = -1;
         self::$edges = [];
     }
+
+    public static function traceBlock($blockIndex, $returnValue) {
+        $key = self::$prevBlock << 32 | $blockIndex;
+        self::$edges[$key] = (self::$edges[$key] ?? 0) + 1;
+        return $returnValue;
+    }
 }
