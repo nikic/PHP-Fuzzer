@@ -13,6 +13,8 @@ $fuzzer->addDictionary(__DIR__ . '/php.dict');
 $fuzzer->addInstrumentedDir(__DIR__ . '/../../tolerant-php-parser/src');
 $fuzzer->startInstrumentation();
 
+// Using tolerant-php-parser here, because the instrumentation uses php-parser,
+// so we can't easily fuzz php-parser itself.
 require __DIR__ . '/../../tolerant-php-parser/vendor/autoload.php';
 $parser = new Microsoft\PhpParser\Parser();
 $fuzzer->fuzz(function(string $input) use($parser) {

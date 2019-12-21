@@ -75,7 +75,7 @@ final class Fuzzer {
         }
 
         $mutationDepthLimit = 5;
-        $maxRuns = 1000;
+        $maxRuns = 10000;
         for ($i = 0; $i < $maxRuns; $i++) {
             $input = $this->corpus->getRandomInput($this->rng) ?? "";
             $crossOverInput = $this->corpus->getRandomInput($this->rng);
