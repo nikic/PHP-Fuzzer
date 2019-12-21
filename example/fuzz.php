@@ -2,6 +2,8 @@
 
 use PhpFuzzer\Fuzzer;
 
+error_reporting(E_ALL);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 $fuzzer = new Fuzzer();
@@ -13,7 +15,7 @@ $fuzzer->startInstrumentation();
 // $parser = new \PhpParser\Parser\Php7(new \PhpParser\Lexer());
 
 require __DIR__ . '/fuzzing_target.php';
-$fuzzer->fuzz(function(string $input) use($parser) {
+$fuzzer->fuzz(function(string $input) {
     fuzzingTarget1($input);
 });
 

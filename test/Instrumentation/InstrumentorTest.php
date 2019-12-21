@@ -31,40 +31,50 @@ CODE;
 
 function test()
 {
-    ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 9];
+    $___key = \InstrumentationContext::$prevBlock << 32 | 9;
+    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
     \InstrumentationContext::$prevBlock = 9;
     $x;
     if ($x) {
-        ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 0];
+        $___key = \InstrumentationContext::$prevBlock << 32 | 0;
+        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
         \InstrumentationContext::$prevBlock = 0;
         $x;
     }
-    ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 1];
+    $___key = \InstrumentationContext::$prevBlock << 32 | 1;
+    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
     \InstrumentationContext::$prevBlock = 1;
     while ($x) {
-        ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 4];
+        $___key = \InstrumentationContext::$prevBlock << 32 | 4;
+        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
         \InstrumentationContext::$prevBlock = 4;
         $x;
         do {
-            ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 2];
+            $___key = \InstrumentationContext::$prevBlock << 32 | 2;
+            \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
             \InstrumentationContext::$prevBlock = 2;
             $x;
         } while ($x);
-        ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 3];
+        $___key = \InstrumentationContext::$prevBlock << 32 | 3;
+        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
         \InstrumentationContext::$prevBlock = 3;
     }
     for ($x; $x; $x) {
-        ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 7];
+        $___key = \InstrumentationContext::$prevBlock << 32 | 7;
+        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
         \InstrumentationContext::$prevBlock = 7;
         foreach ($x as $x) {
-            ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 5];
+            $___key = \InstrumentationContext::$prevBlock << 32 | 5;
+            \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
             \InstrumentationContext::$prevBlock = 5;
             $x;
         }
-        ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 6];
+        $___key = \InstrumentationContext::$prevBlock << 32 | 6;
+        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
         \InstrumentationContext::$prevBlock = 6;
     }
-    ++\InstrumentationContext::$edges[\InstrumentationContext::$prevBlock << 32 | 8];
+    $___key = \InstrumentationContext::$prevBlock << 32 | 8;
+    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
     \InstrumentationContext::$prevBlock = 8;
 }
 CODE;

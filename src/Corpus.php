@@ -37,7 +37,7 @@ final class Corpus {
             return null;
         }
 
-        $entry = $this->entries[$rng->randomInt(0, count($this->entries) - 1)];
+        $entry = $rng->randomElement($this->entries);
         return $entry->input;
     }
 }

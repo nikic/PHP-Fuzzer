@@ -47,19 +47,23 @@ final class Fuzzer {
         if (!$this->loadCorpus($target)) {
             return;
         }
+
+        $mutationDepthLimit = 5;
         for ($i = 0; $i < 10000; $i++) {
-            $input = $this->corpus->getRandomInput($this->rng) ?? "Test";
-            $input = $this->mutator->mutate($input);
-            $entry = $this->runTarget($target, $input);
-            if ($this->corpus->isInteresting($entry)) {
-                $this->corpus->addEntry($entry);
+            $input = $this->corpus->getRandomInput($this->rng) ?? "";
+            for ($m = 0; $m < $mutationDepthLimit; $m++) {
+                $input = $this->mutator->mutate($input);
+                $entry = $this->runTarget($target, $input);
+                if ($this->corpus->isInteresting($entry)) {
+                    $this->corpus->addEntry($entry);
 
-                $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
-                file_put_contents($entry->path, $entry->input);
+                    $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
+                    file_put_contents($entry->path, $entry->input);
 
-                if ($entry->crashInfo) {
-                    $this->printCrash("CRASH", $entry);
-                    break;
+                    if ($entry->crashInfo) {
+                        $this->printCrash("CRASH", $entry);
+                        return;
+                    }
                 }
             }
         }

@@ -61,27 +61,38 @@ final class Visitor extends NodeVisitorAbstract {
 
     private function generateInlineBlockStub(): array {
         // We generate the following code:
-        // ++InstrumentationContext::$edges[
-        //     (InstrumentationContext::$prevBlock << 32) |
-        //     BLOCK_INDEX
-        // ];
-        // InstrumentationContext::$prevBlock = BLOCK_INDEX;
+        // $___key = (Context::$prevBlock << 32) | BLOCK_INDEX;
+        // Context::$edges[$___key] = (Context::$edges[$___key] ?? 0) + 1;
+        // Context::$prevBlock = BLOCK_INDEX;
+        // TODO: When I originally picked this format, I forgot about the initialization issue.
+        // TODO: It probably makes sense to switch this to something that can be pre-initialized.
         $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
+        $keyVar = new Expr\Variable('___key');
         $instrumentationContext = new Node\Name\FullyQualified($this->context->runtimeContextName);
         $edgesVar = new Expr\StaticPropertyFetch($instrumentationContext, 'edges');
+        $edgesKeyVar = new Expr\ArrayDimFetch($edgesVar, $keyVar);
         $prevBlockVar = new Expr\StaticPropertyFetch($instrumentationContext, 'prevBlock');
         return [
             new Stmt\Expression(
-                new Expr\PreInc(new Expr\ArrayDimFetch(
-                    $edgesVar,
-                    new Expr\BinaryOp\BitwiseOr(
-                        new Expr\BinaryOp\ShiftLeft(
-                            $prevBlockVar,
-                            new Scalar\LNumber(32)
-                        ),
-                        $blockIndex
-                    )
+                new Expr\Assign($keyVar, new Expr\BinaryOp\BitwiseOr(
+                    new Expr\BinaryOp\ShiftLeft(
+                        $prevBlockVar,
+                        new Scalar\LNumber(32)
+                    ),
+                    $blockIndex
                 ))
+            ),
+            new Stmt\Expression(
+                new Expr\Assign(
+                    $edgesKeyVar,
+                    new Expr\BinaryOp\Plus(
+                        new Expr\BinaryOp\Coalesce(
+                            $edgesKeyVar,
+                            new Scalar\LNumber(0)
+                        ),
+                        new Scalar\LNumber(1)
+                    )
+                )
             ),
             new Stmt\Expression(
                 new Expr\Assign($prevBlockVar, $blockIndex)
