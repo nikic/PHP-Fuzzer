@@ -74,6 +74,9 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
 
+                    echo "run: $i, "
+                        . "ft: {$this->corpus->getNumFeatures()}, "
+                        . "corpus: {$this->corpus->getNumCorpusEntries()}\n";
                     if ($entry->crashInfo) {
                         $this->printCrash("CRASH", $entry);
                         return;
@@ -89,7 +92,7 @@ final class Fuzzer {
         try {
             $target($input);
         } catch (\Exception $e) {
-            // Assume that exceptions are not an abnormal condition.
+            // Assume that exceptions are not an abnormal conditions.
         } catch (\Error $e) {
             $crashInfo = (string) $e;
         }

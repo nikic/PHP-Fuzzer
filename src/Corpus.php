@@ -17,7 +17,7 @@ final class Corpus {
 
         // Check if we saw any new edges.
         foreach ($entry->edgeCounts as $edge => $count) {
-            if (!isset($this->seenEdges[$this->encodeEdgeCount($edge, $count)])) {
+            if (!isset($this->seenEdgeCounts[$this->encodeEdgeCount($edge, $count)])) {
                 return true;
             }
         }
@@ -27,7 +27,7 @@ final class Corpus {
     public function addEntry(CorpusEntry $entry) {
         $this->entries[] = $entry;
         foreach ($entry->edgeCounts as $edge => $count) {
-            $this->seenEdges[$this->encodeEdgeCount($edge, $count)] = true;
+            $this->seenEdgeCounts[$this->encodeEdgeCount($edge, $count)] = true;
         }
     }
 
@@ -56,5 +56,13 @@ final class Corpus {
             $encodedCount = 7;
         }
         return $encodedCount << 56 | $edge;
+    }
+
+    public function getNumCorpusEntries(): int {
+        return \count($this->entries);
+    }
+
+    public function getNumFeatures(): int {
+        return \count($this->seenEdgeCounts);
     }
 }
