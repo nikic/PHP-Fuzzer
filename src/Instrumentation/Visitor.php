@@ -26,7 +26,7 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\TryCatch ||
             $node instanceof Stmt\While_
         ) {
-            $this->insertInlineBlockStub($node->stmts);
+            $this->prependInlineBlockStub($node->stmts);
             return null;
         }
 
@@ -36,21 +36,25 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\For_ ||
             $node instanceof Stmt\Foreach_
         ) {
-            $this->insertInlineBlockStub($node->stmts);
-            return [$node, $this->generateInlineBlockStub()];
+            $this->prependInlineBlockStub($node->stmts);
+            return [$node, ...$this->generateInlineBlockStub()];
         }
 
         // In these cases we need to insert one after the node only.
         if ($node instanceof Stmt\Label ||
             $node instanceof Stmt\Switch_
         ) {
-            return [$node, $this->generateInlineBlockStub()];
+            return [$node, ...$this->generateInlineBlockStub()];
         }
 
+        // TODO: BinaryOp\And, BinaryOp\Or
+        // TODO: Ternary, BinaryOp\Coalesce, AssignOp\Coalesce
+        // TODO: Yield, YieldFrom
+        // TODO: Comparison instrumentation
         return null;
     }
 
-    private function insertInlineBlockStub(array &$stmts): void {
+    private function prependInlineBlockStub(array &$stmts): void {
         // Insert inline block stub at start of statements.
         array_splice($stmts, 0, 0, $this->generateInlineBlockStub());
     }
