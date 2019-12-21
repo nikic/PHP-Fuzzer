@@ -1,0 +1,16 @@
+{
+  "name": "nikic/php-fuzzer",
+  "license": "MIT",
+  "require": {
+    "php": "^7.4",
+    "nikic/php-parser": "^4.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^8"
+  },
+  "autoload": {
+    "psr-4": {
+      "PhpFuzzer\\": "src/"
+    }
+  }
+}
