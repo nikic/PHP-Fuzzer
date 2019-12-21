@@ -67,7 +67,7 @@ final class Visitor extends NodeVisitorAbstract {
         // ];
         // InstrumentationContext::$prevBlock = BLOCK_INDEX;
         $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
-        $instrumentationContext = new Node\Name\FullyQualified('InstrumentationContext');
+        $instrumentationContext = new Node\Name\FullyQualified($this->context->runtimeContextName);
         $edgesVar = new Expr\StaticPropertyFetch($instrumentationContext, 'edges');
         $prevBlockVar = new Expr\StaticPropertyFetch($instrumentationContext, 'prevBlock');
         return [

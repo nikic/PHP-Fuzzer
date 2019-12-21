@@ -69,7 +69,7 @@ function test()
 }
 CODE;
 
-        $instrumentor = new Instrumentor();
+        $instrumentor = new Instrumentor('InstrumentationContext');
         $output = $instrumentor->instrument($input);
         $this->assertSame($expected, $output);
     }

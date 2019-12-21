@@ -13,10 +13,10 @@ final class Instrumentor {
     private NodeTraverser $traverser;
     private PrettyPrinterAbstract $prettyPrinter;
 
-    public function __construct() {
+    public function __construct(string $runtimeContextName) {
         $this->parser = new Parser\Php7(new Lexer\Emulative());
         $this->traverser = new NodeTraverser();
-        $this->traverser->addVisitor(new Visitor(new Context()));
+        $this->traverser->addVisitor(new Visitor(new Context($runtimeContextName)));
         $this->prettyPrinter = new PrettyPrinter\Standard();
     }
 
