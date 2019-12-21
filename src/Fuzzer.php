@@ -4,6 +4,7 @@ namespace PhpFuzzer;
 
 use Icewind\Interceptor\Interceptor;
 use PhpFuzzer\Instrumentation\Instrumentor;
+use PhpFuzzer\Mutation\Dictionary;
 use PhpFuzzer\Mutation\Mutator;
 use PhpFuzzer\Mutation\RNG;
 
@@ -14,13 +15,15 @@ final class Fuzzer {
     private string $corpusDir;
     private Mutator $mutator;
     private RNG $rng;
+    private Dictionary $dictionary;
 
     public function __construct() {
         // TODO: Cache instrumented files?
         // TODO: Support "external instrumentation" to allow fuzzing php-parser.
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
         $this->rng = new RNG();
-        $this->mutator = new Mutator($this->rng);
+        $this->dictionary = new Dictionary();
+        $this->mutator = new Mutator($this->rng, $this->dictionary);
         $this->corpus = new Corpus();
         $this->interceptor = new Interceptor();
         $this->interceptor->addHook(function($code) {
@@ -33,6 +36,15 @@ final class Fuzzer {
         if (!is_dir($this->corpusDir)) {
             throw new \Exception('Corpus directory "' . $this->corpusDir . '" does not exist');
         }
+    }
+
+    public function addDictionary(string $path): void {
+        if (!is_file($path)) {
+            throw new \Exception('Dictionary "' . $path . '" does not exist');
+        }
+
+        $parser = new DictionaryParser();
+        $this->dictionary->addWords($parser->parse(file_get_contents($path)));
     }
 
     public function addInstrumentedDir(string $path): void {

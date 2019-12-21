@@ -7,11 +7,13 @@ namespace PhpFuzzer\Mutation;
  */
 final class Mutator {
     private RNG $rng;
+    private Dictionary $dictionary;
     private array $mutators;
     private ?string $crossOverWith;
 
-    public function __construct(RNG $rng) {
+    public function __construct(RNG $rng, Dictionary $dictionary) {
         $this->rng = $rng;
+        $this->dictionary = $dictionary;
         $this->mutators = [
             [$this, 'mutateEraseBytes'],
             [$this, 'mutateInsertByte'],
@@ -20,6 +22,7 @@ final class Mutator {
             [$this, 'mutateChangeBit'],
             [$this, 'mutateCopyPart'],
             [$this, 'mutateCrossOver'],
+            [$this, 'mutateAddWordFromManualDictionary'],
         ];
     }
 
@@ -122,6 +125,33 @@ final class Mutator {
                 return $this->copyPartOf($this->crossOverWith, $str);
             default:
                 assert(false);
+        }
+    }
+
+    private function mutateAddWordFromManualDictionary(string $str): ?string {
+        if ($this->dictionary->isEmpty()) {
+            return null;
+        }
+
+        $word = $this->rng->randomElement($this->dictionary->dict);
+        if ($this->rng->randomBool()) {
+            // Insert word.
+            $pos = $this->rng->randomPosOrEnd($str);
+            return \substr($str, 0, $pos)
+                . $word
+                . \substr($str, $pos);
+        } else {
+            // Overwrite with word.
+            $len = \strlen($str);
+            $wordLen = \strlen($word);
+            if ($wordLen > $len) {
+                return null;
+            }
+
+            $pos = $this->rng->randomInt($len - $wordLen + 1);
+            return \substr($str, 0, $pos)
+                . $word
+                . \substr($str, $pos + $wordLen);
         }
     }
 

@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+namespace PhpFuzzer;
+
 use PhpFuzzer\Instrumentation\Instrumentor;
 use PHPUnit\Framework\TestCase;
 
