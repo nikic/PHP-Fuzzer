@@ -4,19 +4,30 @@ namespace PhpFuzzer;
 
 use Icewind\Interceptor\Interceptor;
 use PhpFuzzer\Instrumentation\Instrumentor;
+use PhpFuzzer\Mutation\Mutator;
+use PhpFuzzer\Mutation\RNG;
 
 final class Fuzzer {
     private Interceptor $interceptor;
     private Instrumentor $instrumentor;
+    private Corpus $corpus;
+    private Mutator $mutator;
+    private RNG $rng;
 
     public function __construct() {
         // TODO: Cache instrumented files?
         // TODO: Support "external instrumentation" to allow fuzzing php-parser.
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
+        $this->rng = new RNG();
+        $this->mutator = new Mutator($this->rng);
         $this->interceptor = new Interceptor();
         $this->interceptor->addHook(function($code) {
             return $this->instrumentor->instrument($code);
         });
+    }
+
+    public function setCorpusDir(string $path): void {
+        $this->corpus = new Corpus($path);
     }
 
     public function addInstrumentedDir(string $path): void {
@@ -28,8 +39,24 @@ final class Fuzzer {
     }
 
     public function fuzz(\Closure $target): void {
-        FuzzingContext::reset();
-        $target("Test");
-        var_dump(FuzzingContext::$edges);
+        for ($i = 0; $i < 10000; $i++) {
+            $input = $this->corpus->getRandomInput($this->rng) ?? "Test";
+            $input = $this->mutator->mutate($input);
+
+            FuzzingContext::reset();
+            $isCrash = false;
+            try {
+                $target($input);
+            } catch (\Exception $e) {
+            } catch (\Error $e) {
+                $isCrash = true;
+            }
+
+            $this->corpus->addInput($input, FuzzingContext::$edges);
+            if ($isCrash) {
+                echo "CRASH! " . $e . "\n";
+                break;
+            }
+        }
     }
 }

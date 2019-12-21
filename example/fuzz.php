@@ -5,6 +5,7 @@ use PhpFuzzer\Fuzzer;
 require __DIR__ . '/../vendor/autoload.php';
 
 $fuzzer = new Fuzzer();
+$fuzzer->setCorpusDir(__DIR__ . '/corpus');
 $fuzzer->addInstrumentedDir(__DIR__);
 $fuzzer->startInstrumentation();
 
