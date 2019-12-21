@@ -2,6 +2,7 @@
 
 namespace PhpFuzzer;
 
+use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
 use PHPUnit\Framework\TestCase;
 
@@ -87,9 +88,26 @@ interface Foo
     public function bar();
 }
 CODE;
+        $expectedFileInfo = [
+            1 => 46,
+            2 => 36,
+            3 => 68,
+            4 => 87,
+            5 => 130,
+            6 => 113,
+            7 => 160,
+            8 => 74,
+            9 => 199,
+            10 => 244,
+            11 => 172,
+            12 => 250,
+            13 => 6,
+        ];
 
         $instrumentor = new Instrumentor('InstrumentationContext');
-        $output = $instrumentor->instrument($input);
+        $fileInfo = new FileInfo();
+        $output = $instrumentor->instrument($input, $fileInfo);
         $this->assertSame($expected, $output);
+        $this->assertSame($expectedFileInfo, $fileInfo->blockIndexToPos);
     }
 }

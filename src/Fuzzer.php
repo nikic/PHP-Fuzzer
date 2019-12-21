@@ -3,6 +3,7 @@
 namespace PhpFuzzer;
 
 use Icewind\Interceptor\Interceptor;
+use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
 use PhpFuzzer\Mutation\Dictionary;
 use PhpFuzzer\Mutation\Mutator;
@@ -17,6 +18,9 @@ final class Fuzzer {
     private RNG $rng;
     private Dictionary $dictionary;
 
+    private ?string $coverageDir = null;
+    private array $fileInfos = [];
+
     public function __construct() {
         // TODO: Cache instrumented files?
         // TODO: Support "external instrumentation" to allow fuzzing php-parser.
@@ -26,8 +30,14 @@ final class Fuzzer {
         $this->mutator = new Mutator($this->rng, $this->dictionary);
         $this->corpus = new Corpus();
         $this->interceptor = new Interceptor();
-        $this->interceptor->addHook(function($code) {
-            return $this->instrumentor->instrument($code);
+
+        $this->interceptor->addHook(function(string $code, string $path) {
+            $fileInfo = new FileInfo();
+            $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
+            if ($this->coverageDir !== null) {
+                $this->fileInfos[$path] = $fileInfo;
+            }
+            return $instrumentedCode;
         });
     }
 
@@ -36,6 +46,10 @@ final class Fuzzer {
         if (!is_dir($this->corpusDir)) {
             throw new \Exception('Corpus directory "' . $this->corpusDir . '" does not exist');
         }
+    }
+
+    public function setCoverageDir(string $path): void {
+        $this->coverageDir = $path;
     }
 
     public function addDictionary(string $path): void {
@@ -61,7 +75,7 @@ final class Fuzzer {
         }
 
         $mutationDepthLimit = 5;
-        $maxRuns = 20000;
+        $maxRuns = 1000;
         for ($i = 0; $i < $maxRuns; $i++) {
             $input = $this->corpus->getRandomInput($this->rng) ?? "";
             $crossOverInput = $this->corpus->getRandomInput($this->rng);
@@ -127,5 +141,14 @@ final class Fuzzer {
     private function printCrash(string $prefix, CorpusEntry $entry) {
         echo "$prefix in $entry->path!\n";
         echo $entry->crashInfo . "\n";
+    }
+
+    public function renderCoverage() {
+        if ($this->coverageDir === null) {
+            throw new \Exception('Missing coverage directory');
+        }
+
+        $renderer = new CoverageRenderer($this->coverageDir);
+        $renderer->render($this->fileInfos, $this->corpus->getSeenBlockMap());
     }
 }

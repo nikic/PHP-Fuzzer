@@ -65,4 +65,13 @@ final class Corpus {
     public function getNumFeatures(): int {
         return \count($this->seenEdgeCounts);
     }
+
+    public function getSeenBlockMap(): array {
+        $blocks = [];
+        foreach ($this->seenEdgeCounts as $encodedEdgeCount => $_) {
+            $targetBlock = $encodedEdgeCount & ((1 << 28) - 1);
+            $blocks[$targetBlock] = true;
+        }
+        return $blocks;
+    }
 }

@@ -10,6 +10,7 @@ use PhpParser\NodeVisitorAbstract;
 
 final class Visitor extends NodeVisitorAbstract {
     private Context $context;
+    public ?FileInfo $fileInfo = null;
 
     public function __construct(Context $context) {
         $this->context = $context;
@@ -30,7 +31,7 @@ final class Visitor extends NodeVisitorAbstract {
                 return null;
             }
 
-            $this->prependInlineBlockStub($node->stmts);
+            $this->prependInlineBlockStub($node->stmts, $node->getStartFilePos());
             return null;
         }
 
@@ -40,15 +41,15 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\For_ ||
             $node instanceof Stmt\Foreach_
         ) {
-            $this->prependInlineBlockStub($node->stmts);
-            return [$node, ...$this->generateInlineBlockStub()];
+            $this->prependInlineBlockStub($node->stmts, $node->getStartFilePos());
+            return [$node, ...$this->generateInlineBlockStub($node->getEndFilePos())];
         }
 
         // In these cases we need to insert one after the node only.
         if ($node instanceof Stmt\Label ||
             $node instanceof Stmt\Switch_
         ) {
-            return [$node, ...$this->generateInlineBlockStub()];
+            return [$node, ...$this->generateInlineBlockStub($node->getEndFilePos())];
         }
 
         // For short-circuiting operators, insert a tracing call into one branch.
@@ -81,12 +82,13 @@ final class Visitor extends NodeVisitorAbstract {
         return null;
     }
 
-    private function prependInlineBlockStub(array &$stmts): void {
+    private function prependInlineBlockStub(array &$stmts, int $pos): void {
         // Insert inline block stub at start of statements.
-        array_splice($stmts, 0, 0, $this->generateInlineBlockStub());
+        $stub = $this->generateInlineBlockStub($pos);
+        array_splice($stmts, 0, 0, $stub);
     }
 
-    private function generateInlineBlockStub(): array {
+    private function generateInlineBlockStub(int $pos): array {
         // We generate the following code:
         //   $___key = (Context::$prevBlock << 28) | BLOCK_INDEX;
         //   Context::$edges[$___key] = (Context::$edges[$___key] ?? 0) + 1;
@@ -94,7 +96,7 @@ final class Visitor extends NodeVisitorAbstract {
         // We use a 28-bit block index to leave 8-bits to encode a logarithmic trip count.
         // TODO: When I originally picked this format, I forgot about the initialization issue.
         // TODO: It probably makes sense to switch this to something that can be pre-initialized.
-        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
+        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex($pos));
         $keyVar = new Expr\Variable('___key');
         $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
         $edgesVar = new Expr\StaticPropertyFetch($context, 'edges');
@@ -130,7 +132,7 @@ final class Visitor extends NodeVisitorAbstract {
 
     private function generateTracingCall(Expr $origExpr): Expr {
         $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
-        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
+        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex($origExpr->getStartFilePos()));
         return new Expr\StaticCall($context, 'traceBlock', [
             new Node\Arg($blockIndex),
             new Node\Arg($origExpr),

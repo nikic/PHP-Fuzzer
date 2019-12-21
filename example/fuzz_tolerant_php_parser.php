@@ -8,6 +8,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $fuzzer = new Fuzzer();
 $fuzzer->setCorpusDir(__DIR__ . '/corpus');
+$fuzzer->setCoverageDir(__DIR__ . '/coverage');
 $fuzzer->addDictionary(__DIR__ . '/php.dict');
 $fuzzer->addInstrumentedDir(__DIR__ . '/../../tolerant-php-parser/src');
 $fuzzer->startInstrumentation();
@@ -21,3 +22,4 @@ $fuzzer->fuzz(function(string $input) use($parser) {
     $parser->parseSourceFile($input);
 });
 
+$fuzzer->renderCoverage();
