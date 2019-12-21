@@ -88,9 +88,10 @@ final class Visitor extends NodeVisitorAbstract {
 
     private function generateInlineBlockStub(): array {
         // We generate the following code:
-        // $___key = (Context::$prevBlock << 32) | BLOCK_INDEX;
-        // Context::$edges[$___key] = (Context::$edges[$___key] ?? 0) + 1;
-        // Context::$prevBlock = BLOCK_INDEX;
+        //   $___key = (Context::$prevBlock << 28) | BLOCK_INDEX;
+        //   Context::$edges[$___key] = (Context::$edges[$___key] ?? 0) + 1;
+        //   Context::$prevBlock = BLOCK_INDEX;
+        // We use a 28-bit block index to leave 8-bits to encode a logarithmic trip count.
         // TODO: When I originally picked this format, I forgot about the initialization issue.
         // TODO: It probably makes sense to switch this to something that can be pre-initialized.
         $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex());
@@ -104,7 +105,7 @@ final class Visitor extends NodeVisitorAbstract {
                 new Expr\Assign($keyVar, new Expr\BinaryOp\BitwiseOr(
                     new Expr\BinaryOp\ShiftLeft(
                         $prevBlockVar,
-                        new Scalar\LNumber(32)
+                        new Scalar\LNumber(28)
                     ),
                     $blockIndex
                 ))

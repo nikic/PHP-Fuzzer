@@ -14,6 +14,9 @@ $fuzzer->startInstrumentation();
 
 $parser = new Microsoft\PhpParser\Parser();
 $fuzzer->fuzz(function(string $input) use($parser) {
+    if (\strlen($input) > 1024) {
+        return;
+    }
     $parser->parseSourceFile($input);
 });
 
