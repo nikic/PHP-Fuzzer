@@ -7,7 +7,7 @@ use PhpFuzzer\Mutation\RNG;
 final class Corpus {
     /** @var CorpusEntry[] */
     private array $entries = [];
-    private array $seenEdgeCounts = [];
+    private array $seenFeatures = [];
 
     public function isInteresting(CorpusEntry $entry): bool {
         if ($entry->crashInfo) {
@@ -15,9 +15,9 @@ final class Corpus {
             return true;
         }
 
-        // Check if we saw any new edges.
-        foreach ($entry->edgeCounts as $edge => $count) {
-            if (!isset($this->seenEdgeCounts[$this->encodeEdgeCount($edge, $count)])) {
+        // Check if we saw any new features.
+        foreach ($entry->features as $feature) {
+            if (!isset($this->seenFeatures[$feature])) {
                 return true;
             }
         }
@@ -26,8 +26,8 @@ final class Corpus {
 
     public function addEntry(CorpusEntry $entry): void {
         $this->entries[] = $entry;
-        foreach ($entry->edgeCounts as $edge => $count) {
-            $this->seenEdgeCounts[$this->encodeEdgeCount($edge, $count)] = true;
+        foreach ($entry->features as $feature) {
+            $this->seenFeatures[$feature] = true;
         }
     }
 
@@ -44,35 +44,18 @@ final class Corpus {
         return $rng->randomElement($this->entries);
     }
 
-    private function encodeEdgeCount(int $edge, int $count): int {
-        if ($count < 4) {
-            $encodedCount = $count - 1;
-        } else if ($count < 8) {
-            $encodedCount = 3;
-        } else if ($count < 16) {
-            $encodedCount = 4;
-        } else if ($count < 32) {
-            $encodedCount = 5;
-        } else if ($count < 128) {
-            $encodedCount = 6;
-        } else {
-            $encodedCount = 7;
-        }
-        return $encodedCount << 56 | $edge;
-    }
-
     public function getNumCorpusEntries(): int {
         return \count($this->entries);
     }
 
     public function getNumFeatures(): int {
-        return \count($this->seenEdgeCounts);
+        return \count($this->seenFeatures);
     }
 
     public function getSeenBlockMap(): array {
         $blocks = [];
-        foreach ($this->seenEdgeCounts as $encodedEdgeCount => $_) {
-            $targetBlock = $encodedEdgeCount & ((1 << 28) - 1);
+        foreach ($this->seenFeatures as $feature => $_) {
+            $targetBlock = $feature & ((1 << 28) - 1);
             $blocks[$targetBlock] = true;
         }
         return $blocks;

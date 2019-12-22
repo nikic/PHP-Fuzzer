@@ -98,8 +98,8 @@ final class Fuzzer {
                     }
                 }
 
-                // TODO: Use features instead of raw edge counts.
-                if ($origEntry->edgeCounts === $entry->edgeCounts &&
+                // TODO: Use unique features instead of full features.
+                if ($origEntry->features === $entry->features &&
                     \strlen($input) < \strlen($origEntry->input)
                 ) {
                     $this->corpus->replaceEntry($origEntry, $entry);
@@ -126,9 +126,37 @@ final class Fuzzer {
             $crashInfo = (string) $e;
         }
 
-        $edgeCounts = FuzzingContext::$edges;
-        ksort($edgeCounts);
-        return new CorpusEntry($input, $edgeCounts, $crashInfo);
+        $features = $this->edgeCountsToFeatures(FuzzingContext::$edges);
+        return new CorpusEntry($input, $features, $crashInfo);
+    }
+
+    private function edgeCountsToFeatures(array $edgeCounts): array {
+        $featureMap = [];
+        foreach ($edgeCounts as $edge => $count) {
+            $feature = $this->edgeCountToFeature($edge, $count);
+            $featureMap[$feature] = true;
+        }
+
+        $features = array_keys($featureMap);
+        sort($features);
+        return $features;
+    }
+
+    private function edgeCountToFeature(int $edge, int $count): int {
+        if ($count < 4) {
+            $encodedCount = $count - 1;
+        } else if ($count < 8) {
+            $encodedCount = 3;
+        } else if ($count < 16) {
+            $encodedCount = 4;
+        } else if ($count < 32) {
+            $encodedCount = 5;
+        } else if ($count < 128) {
+            $encodedCount = 6;
+        } else {
+            $encodedCount = 7;
+        }
+        return $encodedCount << 56 | $edge;
     }
 
     private function loadCorpus(\Closure $target): bool {
