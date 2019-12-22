@@ -243,14 +243,34 @@ final class Fuzzer {
         }
     }
 
+    public function runSingleInput(string $path) {
+        $input = file_get_contents($path);
+        $entry = $this->runInput($input);
+        $entry->path = $path;
+        if ($entry->crashInfo) {
+            $this->printCrash('CRASH', $entry);
+        }
+    }
+
     public function handleCliArgs() {
         $shortOpts = '';
         $longOpts = ['minimize-crash:'];
-        $opts = getopt($shortOpts, $longOpts);
+        $opts = getopt($shortOpts, $longOpts, $optind);
+        $rest = array_slice($GLOBALS['argv'], $optind);
+
         if (isset($opts['minimize-crash'])) {
             $this->minimizeCrash($opts['minimize-crash']);
-        } else {
-            $this->fuzz();
+            return;
         }
+
+        if (!empty($rest)) {
+            if (is_file($rest[0])) {
+                echo "Running single input\n";
+                $this->runSingleInput($rest[0]);
+                return;
+            }
+        }
+
+        $this->fuzz();
     }
 }
