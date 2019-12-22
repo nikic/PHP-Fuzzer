@@ -21,6 +21,9 @@ final class Fuzzer {
     private ?string $coverageDir = null;
     private array $fileInfos = [];
 
+    private int $mutationDepthLimit = 5;
+    private int $maxRuns = 10000;
+
     public function __construct() {
         // TODO: Cache instrumented files?
         // TODO: Support "external instrumentation" to allow fuzzing php-parser.
@@ -74,12 +77,12 @@ final class Fuzzer {
             return;
         }
 
-        $mutationDepthLimit = 5;
-        $maxRuns = 10000;
-        for ($i = 0; $i < $maxRuns; $i++) {
-            $input = $this->corpus->getRandomInput($this->rng) ?? "";
-            $crossOverInput = $this->corpus->getRandomInput($this->rng);
-            for ($m = 0; $m < $mutationDepthLimit; $m++) {
+        for ($i = 0; $i < $this->maxRuns; $i++) {
+            $origEntry = $this->corpus->getRandomEntry($this->rng);
+            $input = $origEntry !== null ? $origEntry->input : "";
+            $crossOverEntry = $this->corpus->getRandomEntry($this->rng);
+            $crossOverInput = $crossOverEntry !== null ? $crossOverEntry->input : null;
+            for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
                 $input = $this->mutator->mutate($input, $crossOverInput);
                 $entry = $this->runTarget($target, $input);
                 if ($this->corpus->isInteresting($entry)) {
@@ -88,13 +91,25 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
 
-                    echo "run: $i, "
-                        . "ft: {$this->corpus->getNumFeatures()}, "
-                        . "corpus: {$this->corpus->getNumCorpusEntries()}\n";
+                    $this->printAction('NEW', $i);
                     if ($entry->crashInfo) {
-                        $this->printCrash("CRASH", $entry);
+                        $this->printCrash('CRASH', $entry);
                         return;
                     }
+                }
+
+                // TODO: Use features instead of raw edge counts.
+                if ($origEntry->edgeCounts === $entry->edgeCounts &&
+                    \strlen($input) < \strlen($origEntry->input)
+                ) {
+                    $this->corpus->replaceEntry($origEntry, $entry);
+
+                    // TODO: Refactor corpus storage.
+                    $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
+                    file_put_contents($entry->path, $entry->input);
+                    unlink($origEntry->path);
+                    $this->printAction('REDUCE', $i);
+                    break;
                 }
             }
         }
@@ -110,7 +125,10 @@ final class Fuzzer {
         } catch (\Error $e) {
             $crashInfo = (string) $e;
         }
-        return new CorpusEntry($input, FuzzingContext::$edges, $crashInfo);
+
+        $edgeCounts = FuzzingContext::$edges;
+        ksort($edgeCounts);
+        return new CorpusEntry($input, $edgeCounts, $crashInfo);
     }
 
     private function loadCorpus(\Closure $target): bool {
@@ -136,6 +154,13 @@ final class Fuzzer {
             }
         }
         return true;
+    }
+
+    private function printAction(string $action, int $run) {
+        echo str_pad($action, 6, ' ') . " "
+            . "run: $run, "
+            . "ft: {$this->corpus->getNumFeatures()}, "
+            . "corpus: {$this->corpus->getNumCorpusEntries()}\n";
     }
 
     private function printCrash(string $prefix, CorpusEntry $entry) {

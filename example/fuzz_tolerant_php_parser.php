@@ -24,4 +24,4 @@ $fuzzer->fuzz(function(string $input) use($parser) {
     $parser->parseSourceFile($input);
 });
 
-$fuzzer->renderCoverage();
+//$fuzzer->renderCoverage();

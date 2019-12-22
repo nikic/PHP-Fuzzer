@@ -24,21 +24,24 @@ final class Corpus {
         return false;
     }
 
-    public function addEntry(CorpusEntry $entry) {
+    public function addEntry(CorpusEntry $entry): void {
         $this->entries[] = $entry;
         foreach ($entry->edgeCounts as $edge => $count) {
             $this->seenEdgeCounts[$this->encodeEdgeCount($edge, $count)] = true;
         }
     }
 
-    // TODO: This doesn't really belong here?
-    public function getRandomInput(RNG $rng): ?string {
+    public function replaceEntry(CorpusEntry $origEntry, CorpusEntry $newEntry): void {
+        $idx = array_search($origEntry, $this->entries); // TODO: Optimize
+        $this->entries[$idx] = $newEntry;
+    }
+
+    public function getRandomEntry(RNG $rng): ?CorpusEntry {
         if (empty($this->entries)) {
             return null;
         }
 
-        $entry = $rng->randomElement($this->entries);
-        return $entry->input;
+        return $rng->randomElement($this->entries);
     }
 
     private function encodeEdgeCount(int $edge, int $count): int {
