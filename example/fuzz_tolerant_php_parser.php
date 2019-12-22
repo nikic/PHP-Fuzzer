@@ -17,11 +17,12 @@ $fuzzer->startInstrumentation();
 // so we can't easily fuzz php-parser itself.
 require __DIR__ . '/../../tolerant-php-parser/vendor/autoload.php';
 $parser = new Microsoft\PhpParser\Parser();
-$fuzzer->fuzz(function(string $input) use($parser) {
+$fuzzer->setTarget(function(string $input) use($parser) {
     if (\strlen($input) > 1024) {
         return;
     }
     $parser->parseSourceFile($input);
 });
 
+$fuzzer->handleCliArgs();
 //$fuzzer->renderCoverage();

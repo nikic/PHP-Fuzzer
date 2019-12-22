@@ -17,6 +17,7 @@ final class Fuzzer {
     private Mutator $mutator;
     private RNG $rng;
     private Dictionary $dictionary;
+    private \Closure $target;
 
     private ?string $coverageDir = null;
     private array $fileInfos = [];
@@ -42,6 +43,10 @@ final class Fuzzer {
             }
             return $instrumentedCode;
         });
+    }
+
+    public function setTarget(\Closure $target): void {
+        $this->target = $target;
     }
 
     public function setCorpusDir(string $path): void {
@@ -72,8 +77,8 @@ final class Fuzzer {
         $this->interceptor->setUp();
     }
 
-    public function fuzz(\Closure $target): void {
-        if (!$this->loadCorpus($target)) {
+    public function fuzz(): void {
+        if (!$this->loadCorpus()) {
             return;
         }
 
@@ -84,7 +89,7 @@ final class Fuzzer {
             $crossOverInput = $crossOverEntry !== null ? $crossOverEntry->input : null;
             for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
                 $input = $this->mutator->mutate($input, $crossOverInput);
-                $entry = $this->runTarget($target, $input);
+                $entry = $this->runInput($input);
                 if ($this->corpus->isInteresting($entry)) {
                     $this->corpus->addEntry($entry);
 
@@ -115,11 +120,11 @@ final class Fuzzer {
         }
     }
 
-    private function runTarget(\Closure $target, string $input) {
+    private function runInput(string $input) {
         FuzzingContext::reset();
         $crashInfo = null;
         try {
-            $target($input);
+            ($this->target)($input);
         } catch (\Exception $e) {
             // Assume that exceptions are not an abnormal conditions.
         } catch (\Error $e) {
@@ -159,7 +164,7 @@ final class Fuzzer {
         return $encodedCount << 56 | $edge;
     }
 
-    private function loadCorpus(\Closure $target): bool {
+    private function loadCorpus(): bool {
         $it = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->corpusDir),
             \RecursiveIteratorIterator::LEAVES_ONLY
@@ -171,7 +176,7 @@ final class Fuzzer {
 
             $path = $file->getPathname();
             $input = file_get_contents($path);
-            $entry = $this->runTarget($target, $input);
+            $entry = $this->runInput($input);
             if ($this->corpus->isInteresting($entry)) {
                 $entry->path = $path;
                 $this->corpus->addEntry($entry);
@@ -203,5 +208,49 @@ final class Fuzzer {
 
         $renderer = new CoverageRenderer($this->coverageDir);
         $renderer->render($this->fileInfos, $this->corpus->getSeenBlockMap());
+    }
+
+    private function minimizeCrash(string $path) {
+        if (!is_file($path)) {
+            throw new \Exception("Crash input \"$path\" does not exist");
+        }
+
+        // TODO: realpath() works around a bug in interceptor!
+        $input = file_get_contents(realpath($path));
+        $entry = $this->runInput($input);
+        if (!$entry->crashInfo) {
+            throw new \Exception("Crash input did not crash");
+        }
+
+        for ($i = 0; $i < 10000; $i++) {
+            // TODO: Mutation depth, etc.
+            $newInput = $this->mutator->mutate($input, null);
+            if (\strlen($newInput) >= \strlen($input)) {
+                continue;
+            }
+
+            $newEntry = $this->runInput($newInput);
+            if (!$newEntry->crashInfo) {
+                continue;
+            }
+
+            $path = getcwd() . '/minimized-' . md5($newInput) . '.txt';
+            file_put_contents($path, $newInput);
+
+            $len = \strlen($newInput);
+            echo "CRASH $len @ $path\n";
+            $input = $newInput;
+        }
+    }
+
+    public function handleCliArgs() {
+        $shortOpts = '';
+        $longOpts = ['minimize-crash:'];
+        $opts = getopt($shortOpts, $longOpts);
+        if (isset($opts['minimize-crash'])) {
+            $this->minimizeCrash($opts['minimize-crash']);
+        } else {
+            $this->fuzz();
+        }
     }
 }

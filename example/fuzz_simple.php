@@ -12,7 +12,8 @@ $fuzzer->addInstrumentedDir(__DIR__);
 $fuzzer->startInstrumentation();
 
 require __DIR__ . '/fuzzing_target.php';
-$fuzzer->fuzz(function(string $input) {
+$fuzzer->setTarget(function(string $input) {
     fuzzingTarget1($input);
 });
+$fuzzer->handleCliArgs();
 
