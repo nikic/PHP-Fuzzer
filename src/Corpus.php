@@ -8,6 +8,7 @@ final class Corpus {
     /** @var CorpusEntry[] */
     private array $entries = [];
     private array $seenFeatures = [];
+    private int $len = 0;
 
     public function computeUniqueFeatures(CorpusEntry $entry) {
         $entry->uniqueFeatures = [];
@@ -23,11 +24,14 @@ final class Corpus {
         foreach ($entry->uniqueFeatures as $feature => $_) {
             $this->seenFeatures[$feature] = true;
         }
+        $this->len += \strlen($entry->input);
     }
 
     public function replaceEntry(CorpusEntry $origEntry, CorpusEntry $newEntry): void {
         $idx = array_search($origEntry, $this->entries); // TODO: Optimize
         $this->entries[$idx] = $newEntry;
+        $this->len -= \strlen($origEntry->input);
+        $this->len += \strlen($newEntry->input);
     }
 
     public function getRandomEntry(RNG $rng): ?CorpusEntry {
@@ -44,6 +48,10 @@ final class Corpus {
 
     public function getNumFeatures(): int {
         return \count($this->seenFeatures);
+    }
+
+    public function getTotalLen(): int {
+        return $this->len;
     }
 
     public function getSeenBlockMap(): array {

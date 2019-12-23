@@ -28,8 +28,10 @@ final class Fuzzer {
     private ?string $coverageDir = null;
     private array $fileInfos = [];
 
-    private int $mutationDepthLimit = 5;
     private int $runs = 0;
+    private int $initialFeatures;
+    private float $startTime;
+    private int $mutationDepthLimit = 5;
     private int $maxRuns = PHP_INT_MAX;
 
     public function __construct() {
@@ -122,6 +124,7 @@ final class Fuzzer {
 
         // Don't count runs while loading the corpus.
         $this->runs = 0;
+        $this->startTime = microtime(true);
         while ($this->runs < $this->maxRuns) {
             $origEntry = $this->corpus->getRandomEntry($this->rng);
             $input = $origEntry !== null ? $origEntry->input : "";
@@ -149,7 +152,7 @@ final class Fuzzer {
                 }
 
                 if ($origEntry !== null &&
-                    \strlen($input) < \strlen($origEntry->input) &&
+                    \strlen($entry->input) < \strlen($origEntry->input) &&
                     $entry->hasAllUniqueFeaturesOf($origEntry)
                 ) {
                     // Preserve unique features of original entry,
@@ -243,14 +246,29 @@ final class Fuzzer {
                 $this->corpus->addEntry($entry);
             }
         }
+        $this->initialFeatures = $this->corpus->getNumFeatures();
         return true;
     }
 
     private function printAction(string $action) {
-        echo str_pad($action, 6, ' ') . " "
-            . "run: {$this->runs}, "
-            . "ft: {$this->corpus->getNumFeatures()}, "
-            . "corpus: {$this->corpus->getNumCorpusEntries()}\n";
+        $time = microtime(true) - $this->startTime;
+        $numFeatures = $this->corpus->getNumFeatures();
+        $numNewFeatures = $numFeatures - $this->initialFeatures;
+        echo sprintf("%-6s run: %d (%4.0f/s), ft: %d (%4.0f/s), corpus: %d (%s), t: %.0fs\n",
+            $action, $this->runs, $this->runs / $time,
+            $numFeatures, $numNewFeatures / $time,
+            $this->corpus->getNumCorpusEntries(),
+            $this->formatBytes($this->corpus->getTotalLen()),
+            $time);
+    }
+
+    private function formatBytes(int $bytes): string {
+        if ($bytes < 16 * 1024) {
+            return $bytes . 'b';
+        } else {
+            $kiloBytes = (int) round($bytes / 1024);
+            return $kiloBytes . 'kb';
+        }
     }
 
     private function printCrash(string $prefix, CorpusEntry $entry) {

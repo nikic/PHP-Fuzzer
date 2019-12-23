@@ -26,7 +26,7 @@ final class Mutator {
         ];
     }
 
-    private function mutateEraseBytes(string $str): ?string {
+    public function mutateEraseBytes(string $str): ?string {
         $len = \strlen($str);
         if ($len <= 1) {
             return null;
