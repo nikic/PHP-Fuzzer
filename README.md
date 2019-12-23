@@ -37,8 +37,8 @@ php-fuzzer fuzz target.php corpus/
 php-fuzzer minimize-crash target.php crashing_input.txt
 
 # You can also simply run a single intput through the target
-php-fuzzer run-single single_input.txt
+php-fuzzer run-single target.php single_input.txt
 
 # To see which code-paths have been explored, an HTML coverage report can be generated
-php-fuzzer report-coverage corpus/ coverage_dir/
+php-fuzzer report-coverage target.php corpus/ coverage_dir/
 ```

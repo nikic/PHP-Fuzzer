@@ -9,24 +9,18 @@ final class Corpus {
     private array $entries = [];
     private array $seenFeatures = [];
 
-    public function isInteresting(CorpusEntry $entry): bool {
-        if ($entry->crashInfo) {
-            // Crashes are always interesting for now.
-            return true;
-        }
-
-        // Check if we saw any new features.
-        foreach ($entry->features as $feature) {
+    public function computeUniqueFeatures(CorpusEntry $entry) {
+        $entry->uniqueFeatures = [];
+        foreach ($entry->features as $feature => $_) {
             if (!isset($this->seenFeatures[$feature])) {
-                return true;
+                $entry->uniqueFeatures[$feature] = true;
             }
         }
-        return false;
     }
 
     public function addEntry(CorpusEntry $entry): void {
         $this->entries[] = $entry;
-        foreach ($entry->features as $feature) {
+        foreach ($entry->uniqueFeatures as $feature => $_) {
             $this->seenFeatures[$feature] = true;
         }
     }

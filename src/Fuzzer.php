@@ -18,6 +18,7 @@ final class Fuzzer {
     private Instrumentor $instrumentor;
     private Corpus $corpus;
     private string $corpusDir;
+    private string $outputDir;
     private Mutator $mutator;
     private RNG $rng;
     private Dictionary $dictionary;
@@ -33,6 +34,7 @@ final class Fuzzer {
     public function __construct() {
         // TODO: Cache instrumented files?
         // TODO: Support "external instrumentation" to allow fuzzing php-parser.
+        $this->outputDir = getcwd();
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
         $this->rng = new RNG();
         $this->dictionary = new Dictionary();
@@ -125,24 +127,31 @@ final class Fuzzer {
             for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
                 $input = $this->mutator->mutate($input, $crossOverInput);
                 $entry = $this->runInput($input);
-                if ($this->corpus->isInteresting($entry)) {
+                if ($entry->crashInfo) {
+                    $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
+                    file_put_contents($entry->path, $entry->input);
+                    $this->printCrash('CRASH', $entry);
+                    return;
+                }
+
+                $this->corpus->computeUniqueFeatures($entry);
+                if ($entry->uniqueFeatures) {
                     $this->corpus->addEntry($entry);
 
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
 
                     $this->printAction('NEW', $i);
-                    if ($entry->crashInfo) {
-                        $this->printCrash('CRASH', $entry);
-                        return;
-                    }
+                    break;
                 }
 
-                // TODO: Use unique features instead of full features.
                 if ($origEntry !== null &&
-                    $origEntry->features === $entry->features &&
-                    \strlen($input) < \strlen($origEntry->input)
+                    \strlen($input) < \strlen($origEntry->input) &&
+                    $entry->hasAllUniqueFeaturesOf($origEntry)
                 ) {
+                    // Preserve unique features of original entry,
+                    // even if they are not unique anymore at this point.
+                    $entry->uniqueFeatures = $origEntry->uniqueFeatures;
                     $this->corpus->replaceEntry($origEntry, $entry);
 
                     // TODO: Refactor corpus storage.
@@ -172,14 +181,11 @@ final class Fuzzer {
     }
 
     private function edgeCountsToFeatures(array $edgeCounts): array {
-        $featureMap = [];
+        $features = [];
         foreach ($edgeCounts as $edge => $count) {
             $feature = $this->edgeCountToFeature($edge, $count);
-            $featureMap[$feature] = true;
+            $features[$feature] = true;
         }
-
-        $features = array_keys($featureMap);
-        sort($features);
         return $features;
     }
 
@@ -213,13 +219,15 @@ final class Fuzzer {
             $path = $file->getPathname();
             $input = file_get_contents($path);
             $entry = $this->runInput($input);
-            if ($this->corpus->isInteresting($entry)) {
-                $entry->path = $path;
+            $entry->path = $path;
+            if ($entry->crashInfo) {
+                $this->printCrash("CORPUS CRASH", $entry);
+                return false;
+            }
+
+            $this->corpus->computeUniqueFeatures($entry);
+            if ($entry->uniqueFeatures) {
                 $this->corpus->addEntry($entry);
-                if ($entry->crashInfo) {
-                    $this->printCrash("CORPUS CRASH", $entry);
-                    return false;
-                }
             }
         }
         return true;
