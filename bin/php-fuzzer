@@ -5,7 +5,12 @@ use PhpFuzzer\Fuzzer;
 
 error_reporting(E_ALL);
 
-require __DIR__ . '/../vendor/autoload.php';
+foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $file) {
+    if (file_exists($file)) {
+        require $file;
+        break;
+    }
+}
 
 $fuzzer = new Fuzzer();
 $fuzzer->handleCliArgs();

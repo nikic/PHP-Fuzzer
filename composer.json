@@ -4,7 +4,8 @@
   "require": {
     "php": "^7.4",
     "nikic/php-parser": "^4.3",
-    "icewind/interceptor": "^0.3.0"
+    "icewind/interceptor": "^0.3.0",
+    "ulrichsg/getopt-php": "^3.2"
   },
   "require-dev": {
     "phpunit/phpunit": "^8"
@@ -13,5 +14,6 @@
     "psr-4": {
       "PhpFuzzer\\": "src/"
     }
-  }
+  },
+  "bin": ["bin/php-fuzzer"]
 }

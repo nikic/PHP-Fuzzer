@@ -10,13 +10,35 @@ This is just a quick experiment, it does not work particularly well.
 Usage
 -----
 
-```shell script
-php-fuzz --target example/target_simple.php example/corpus
+First, a definition of the target function is necessary. Here is a basic example from `example/target_simple.php`:
 
-# Run with starting corpus
-php-fuzz --target example/target_tolerant_php_parser.php example/corpus
-# Minimize a crash
-php-fuzz --target example/target_tolerant_php_parser.php --minimize-crash crashing_input.txt
-# Run single input (e.g. to check for crash)
-php-fuzz --target example/target_tolerant_php_parser.php single_input.txt
+```php
+<?php // target.php
+
+/** @var PhpFuzzer\Fuzzer $fuzzer */
+$fuzzer->setTarget(function(string $input) {
+    if (strlen($input) >= 4 && $input[0] == 'z' && $input[3] == 'k') {
+        throw new Error('Bug!');
+    }
+});
+```
+
+See `example/target_tolerant_php_parser.php` for a more realistic target.
+
+Then, one of multiple commands may be used through the `php-fuzz` binary:
+
+```shell script
+# Run the fuzzer!
+# corpus/ specifies both the starting corpus,
+# as well as the directory for new corpus entries
+php-fuzzer fuzz target.php corpus/
+
+# After a crashing input has been found, you may want to minimize it
+php-fuzzer minimize-crash target.php crashing_input.txt
+
+# You can also simply run a single intput through the target
+php-fuzzer run-single single_input.txt
+
+# To see which code-paths have been explored, an HTML coverage report can be generated
+php-fuzzer report-coverage corpus/ coverage_dir/
 ```

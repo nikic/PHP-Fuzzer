@@ -2,6 +2,10 @@
 
 namespace PhpFuzzer;
 
+use GetOpt\ArgumentException;
+use GetOpt\Command;
+use GetOpt\GetOpt;
+use GetOpt\Operand;
 use Icewind\Interceptor\Interceptor;
 use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
@@ -275,49 +279,80 @@ final class Fuzzer {
         }
     }
 
-    public function runSingleInput(string $path) {
-        $input = file_get_contents($path);
+    public function handleCliArgs() {
+        $getOpt = new GetOpt([
+            ['dict', GetOpt::REQUIRED_ARGUMENT],
+            ['h', 'help', GetOpt::NO_ARGUMENT]
+        ]);
+        $getOpt->addOperand(Operand::create('target', Operand::REQUIRED));
+
+        $getOpt->addCommand(Command::create('minimize-crash', [$this, 'handleMinimizeCrashCommand'])
+            ->addOperand(Operand::create('input', Operand::REQUIRED)));
+        $getOpt->addCommand(Command::create('run-single', [$this, 'handleRunSingleCommand'])
+            ->addOperand(Operand::create('input', Operand::REQUIRED)));
+        $getOpt->addCommand(Command::create('fuzz', [$this, 'handleFuzzCommand'])
+            ->addOperand(Operand::create('corpus', Operand::REQUIRED)));
+        $getOpt->addCommand(Command::create('report-coverage', [$this, 'handleReportCoverage'])
+            ->addOperand(Operand::create('corpus', Operand::REQUIRED))
+            ->addOperand(Operand::create('coverage-dir', Operand::REQUIRED)));
+
+        try {
+            $getOpt->process();
+        } catch (ArgumentException $e) {
+            echo $e->getMessage() . PHP_EOL;
+            echo PHP_EOL . $getOpt->getHelpText();
+            return;
+        }
+
+        if ($getOpt->getOption('help')) {
+            echo $getOpt->getHelpText();
+            return;
+        }
+
+        $command = $getOpt->getCommand();
+        if (!$command) {
+            echo 'Missing command' . PHP_EOL;
+            echo PHP_EOL . $getOpt->getHelpText();
+            return;
+        }
+
+        $opts = $getOpt->getOptions();
+        if (isset($opts['dict'])) {
+            $this->addDictionary($opts['dict']);
+        }
+
+        $this->loadTarget($getOpt->getOperand('target'));
+
+        $command->getHandler()($getOpt);
+    }
+
+    private function handleFuzzCommand(GetOpt $getOpt) {
+        $this->setCorpusDir($getOpt->getOperand('corpus'));
+        $this->fuzz();
+    }
+
+    private function handleRunSingleCommand(GetOpt $getOpt) {
+        $inputPath = $getOpt->getOperand('input');
+        if (!is_file($inputPath)) {
+            throw new \Exception('Input "' . $inputPath . '" does not exist');
+        }
+
+        $inputPath = realpath($inputPath); // TODO: Workaround interceptor bug
+        $input = file_get_contents($inputPath);
         $entry = $this->runInput($input);
-        $entry->path = $path;
+        $entry->path = $inputPath;
         if ($entry->crashInfo) {
             $this->printCrash('CRASH', $entry);
         }
     }
 
-    public function handleCliArgs() {
-        $shortOpts = '';
-        $longOpts = [
-            'target:',
-            'dict:',
-            'minimize-crash:',
-        ];
-        $opts = getopt($shortOpts, $longOpts, $optind);
-        $rest = array_slice($GLOBALS['argv'], $optind);
+    private function handleMinimizeCrashCommand(GetOpt $getOpt) {
+        $this->minimizeCrash($getOpt->getOperand('input'));
+    }
 
-        if (isset($opts['dict'])) {
-            $this->addDictionary($opts['dict']);
-        }
-
-        if (isset($opts['target'])) {
-            $this->loadTarget($opts['target']);
-        }
-
-        if (isset($opts['minimize-crash'])) {
-            $this->minimizeCrash($opts['minimize-crash']);
-            return;
-        }
-
-        if (!empty($rest)) {
-            $path = $rest[0];
-            if (is_dir($path)) {
-                $this->setCorpusDir($path);
-            } else if (is_file($path)) {
-                echo "Running single input\n";
-                $this->runSingleInput($path);
-                return;
-            }
-        }
-
-        $this->fuzz();
+    private function handleReportCoverage(GetOpt $getOpt) {
+        $this->setCorpusDir($getOpt->getOperand('corpus'));
+        $this->setCoverageDir($getOpt->getOperand('coverage-dir'));
+        $this->renderCoverage();
     }
 }
