@@ -63,9 +63,7 @@ final class Fuzzer {
         $this->interceptor->addHook(function(string $code, string $path) {
             $fileInfo = new FileInfo();
             $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
-            if ($this->coverageDir !== null) {
-                $this->fileInfos[$path] = $fileInfo;
-            }
+            $this->fileInfos[$path] = $fileInfo;
             return $instrumentedCode;
         });
     }
@@ -396,6 +394,7 @@ final class Fuzzer {
     private function handleReportCoverage(GetOpt $getOpt) {
         $this->setCorpusDir($getOpt->getOperand('corpus'));
         $this->setCoverageDir($getOpt->getOperand('coverage-dir'));
+        $this->loadCorpus();
         $this->renderCoverage();
     }
 }
