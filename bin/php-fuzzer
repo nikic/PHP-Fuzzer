@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php declare(strict_types=1);
+
+use PhpFuzzer\Fuzzer;
+
+error_reporting(E_ALL);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$fuzzer = new Fuzzer();
+$fuzzer->handleCliArgs();

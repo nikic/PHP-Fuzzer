@@ -5,6 +5,18 @@ This experiment implements a primitive fuzzer for PHP. The fuzzing target is ins
 order to record edge coverage during execution of the target. Fuzzer inputs are mutated in an attempt to increase
 edge coverage. A reduced representation of the coverage can also be rendered.
 
-Basic usage shown in `example/fuzz_*.php`.
-
 This is just a quick experiment, it does not work particularly well.
+
+Usage
+-----
+
+```shell script
+php-fuzz --target example/target_simple.php example/corpus
+
+# Run with starting corpus
+php-fuzz --target example/target_tolerant_php_parser.php example/corpus
+# Minimize a crash
+php-fuzz --target example/target_tolerant_php_parser.php --minimize-crash crashing_input.txt
+# Run single input (e.g. to check for crash)
+php-fuzz --target example/target_tolerant_php_parser.php single_input.txt
+```

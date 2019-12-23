@@ -18,6 +18,7 @@ final class Fuzzer {
     private RNG $rng;
     private Dictionary $dictionary;
     private \Closure $target;
+    public ?string $targetPath = null;
 
     private ?string $coverageDir = null;
     private array $fileInfos = [];
@@ -33,7 +34,22 @@ final class Fuzzer {
         $this->dictionary = new Dictionary();
         $this->mutator = new Mutator($this->rng, $this->dictionary);
         $this->corpus = new Corpus();
-        $this->interceptor = new Interceptor();
+
+        // TODO: Work around lack of file whitelist in interceptor.
+        $this->interceptor = new class($this) extends Interceptor {
+            private Fuzzer $fuzzer;
+            public function __construct(Fuzzer $fuzzer) {
+                $this->fuzzer = $fuzzer;
+                parent::__construct();
+            }
+
+            public function shouldIntercept($path) {
+                if ($path === $this->fuzzer->targetPath) {
+                    return true;
+                }
+                return parent::shouldIntercept($path);
+            }
+        };
 
         $this->interceptor->addHook(function(string $code, string $path) {
             $fileInfo = new FileInfo();
@@ -45,11 +61,26 @@ final class Fuzzer {
         });
     }
 
+    private function loadTarget(string $path): void {
+        if (!is_file($path)) {
+            throw new \Exception('Target "' . $path . '" does not exist');
+        }
+
+        $path = realpath($path);
+        $this->targetPath = $path;
+        $this->startInstrumentation();
+        // Unbind $this and make it available as $fuzzer variable.
+        (static function(Fuzzer $fuzzer) use($path) {
+            require $path;
+        })($this);
+    }
+
     public function setTarget(\Closure $target): void {
         $this->target = $target;
     }
 
     public function setCorpusDir(string $path): void {
+        $path = realpath($path); // TODO: Work around interceptor bug
         $this->corpusDir = $path;
         if (!is_dir($this->corpusDir)) {
             throw new \Exception('Corpus directory "' . $this->corpusDir . '" does not exist');
@@ -104,7 +135,8 @@ final class Fuzzer {
                 }
 
                 // TODO: Use unique features instead of full features.
-                if ($origEntry->features === $entry->features &&
+                if ($origEntry !== null &&
+                    $origEntry->features === $entry->features &&
                     \strlen($input) < \strlen($origEntry->input)
                 ) {
                     $this->corpus->replaceEntry($origEntry, $entry);
@@ -254,9 +286,21 @@ final class Fuzzer {
 
     public function handleCliArgs() {
         $shortOpts = '';
-        $longOpts = ['minimize-crash:'];
+        $longOpts = [
+            'target:',
+            'dict:',
+            'minimize-crash:',
+        ];
         $opts = getopt($shortOpts, $longOpts, $optind);
         $rest = array_slice($GLOBALS['argv'], $optind);
+
+        if (isset($opts['dict'])) {
+            $this->addDictionary($opts['dict']);
+        }
+
+        if (isset($opts['target'])) {
+            $this->loadTarget($opts['target']);
+        }
 
         if (isset($opts['minimize-crash'])) {
             $this->minimizeCrash($opts['minimize-crash']);
@@ -264,9 +308,12 @@ final class Fuzzer {
         }
 
         if (!empty($rest)) {
-            if (is_file($rest[0])) {
+            $path = $rest[0];
+            if (is_dir($path)) {
+                $this->setCorpusDir($path);
+            } else if (is_file($path)) {
                 echo "Running single input\n";
-                $this->runSingleInput($rest[0]);
+                $this->runSingleInput($path);
                 return;
             }
         }
