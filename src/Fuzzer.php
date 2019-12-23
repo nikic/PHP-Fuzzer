@@ -29,7 +29,8 @@ final class Fuzzer {
     private array $fileInfos = [];
 
     private int $mutationDepthLimit = 5;
-    private int $maxRuns = 10000;
+    private int $runs = 0;
+    private int $maxRuns = PHP_INT_MAX;
 
     public function __construct() {
         // TODO: Cache instrumented files?
@@ -119,7 +120,9 @@ final class Fuzzer {
             return;
         }
 
-        for ($i = 0; $i < $this->maxRuns; $i++) {
+        // Don't count runs while loading the corpus.
+        $this->runs = 0;
+        while ($this->runs < $this->maxRuns) {
             $origEntry = $this->corpus->getRandomEntry($this->rng);
             $input = $origEntry !== null ? $origEntry->input : "";
             $crossOverEntry = $this->corpus->getRandomEntry($this->rng);
@@ -141,7 +144,7 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
 
-                    $this->printAction('NEW', $i);
+                    $this->printAction('NEW');
                     break;
                 }
 
@@ -158,7 +161,7 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
                     unlink($origEntry->path);
-                    $this->printAction('REDUCE', $i);
+                    $this->printAction('REDUCE');
                     break;
                 }
             }
@@ -166,6 +169,7 @@ final class Fuzzer {
     }
 
     private function runInput(string $input) {
+        $this->runs++;
         FuzzingContext::reset();
         $crashInfo = null;
         try {
@@ -211,6 +215,7 @@ final class Fuzzer {
             new \RecursiveDirectoryIterator($this->corpusDir),
             \RecursiveIteratorIterator::LEAVES_ONLY
         );
+        $entries = [];
         foreach ($it as $file) {
             if (!$file->isFile()) {
                 continue;
@@ -225,6 +230,14 @@ final class Fuzzer {
                 return false;
             }
 
+            $entries[] = $entry;
+        }
+
+        // Favor short entries.
+        usort($entries, function (CorpusEntry $a, CorpusEntry $b) {
+            return \strlen($a->input) <=> \strlen($b->input);
+        });
+        foreach ($entries as $entry) {
             $this->corpus->computeUniqueFeatures($entry);
             if ($entry->uniqueFeatures) {
                 $this->corpus->addEntry($entry);
@@ -233,9 +246,9 @@ final class Fuzzer {
         return true;
     }
 
-    private function printAction(string $action, int $run) {
+    private function printAction(string $action) {
         echo str_pad($action, 6, ' ') . " "
-            . "run: $run, "
+            . "run: {$this->runs}, "
             . "ft: {$this->corpus->getNumFeatures()}, "
             . "corpus: {$this->corpus->getNumCorpusEntries()}\n";
     }
@@ -266,7 +279,7 @@ final class Fuzzer {
             throw new \Exception("Crash input did not crash");
         }
 
-        for ($i = 0; $i < 10000; $i++) {
+        while ($this->runs < $this->maxRuns) {
             // TODO: Mutation depth, etc.
             $newInput = $this->mutator->mutate($input, null);
             if (\strlen($newInput) >= \strlen($input)) {
@@ -289,8 +302,9 @@ final class Fuzzer {
 
     public function handleCliArgs() {
         $getOpt = new GetOpt([
+            ['h', 'help', GetOpt::NO_ARGUMENT],
             ['dict', GetOpt::REQUIRED_ARGUMENT],
-            ['h', 'help', GetOpt::NO_ARGUMENT]
+            ['max-runs', GetOpt::REQUIRED_ARGUMENT],
         ]);
         $getOpt->addOperand(Operand::create('target', Operand::REQUIRED));
 
@@ -325,6 +339,9 @@ final class Fuzzer {
         }
 
         $opts = $getOpt->getOptions();
+        if (isset($opts['max-runs'])) {
+            $this->maxRuns = (int) $opts['max-runs'];
+        }
         if (isset($opts['dict'])) {
             $this->addDictionary($opts['dict']);
         }
