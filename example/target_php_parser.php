@@ -4,6 +4,7 @@
 
 /** @var PhpFuzzer\Fuzzer $fuzzer */
 
+$fuzzer->setMaxLen(1024);
 $fuzzer->addDictionary(__DIR__ . '/php.dict');
 $fuzzer->addInstrumentedDir(__DIR__ . '/../../PHP-Parser/lib');
 
@@ -12,9 +13,6 @@ $parser = new PhpParser\Parser\Php7(new PhpParser\Lexer);
 $prettyPrinter = new PhpParser\PrettyPrinter\Standard();
 
 $fuzzer->setTarget(function(string $input) use($parser, $prettyPrinter) {
-    if (\strlen($input) > 1024) {
-        return;
-    }
     $stmts = $parser->parse($input);
     $prettyPrinter->prettyPrintFile($stmts);
 });

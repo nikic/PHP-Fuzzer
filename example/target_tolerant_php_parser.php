@@ -5,6 +5,7 @@
 
 /** @var PhpFuzzer\Fuzzer $fuzzer */
 
+$fuzzer->setMaxLen(1024);
 $fuzzer->addDictionary(__DIR__ . '/php.dict');
 $fuzzer->addInstrumentedDir(__DIR__ . '/../../tolerant-php-parser/src');
 
@@ -12,8 +13,5 @@ require __DIR__ . '/../../tolerant-php-parser/vendor/autoload.php';
 $parser = new Microsoft\PhpParser\Parser();
 
 $fuzzer->setTarget(function(string $input) use($parser) {
-    if (\strlen($input) > 1024) {
-        return;
-    }
     $parser->parseSourceFile($input);
 });

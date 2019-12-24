@@ -9,7 +9,7 @@ final class Mutator {
     private RNG $rng;
     private Dictionary $dictionary;
     private array $mutators;
-    private ?string $crossOverWith;
+    private ?string $crossOverWith = null; // TODO: Get rid of this
 
     public function __construct(RNG $rng, Dictionary $dictionary) {
         $this->rng = $rng;
@@ -29,6 +29,10 @@ final class Mutator {
         ];
     }
 
+    public function getMutators(): array {
+        return $this->mutators;
+    }
+
     private function randomBiasedChar(): string {
         if ($this->rng->randomBool()) {
             return $this->rng->randomChar();
@@ -37,27 +41,40 @@ final class Mutator {
         return $chars[$this->rng->randomPos($chars)];
     }
 
-    public function mutateEraseBytes(string $str): ?string {
+    public function mutateEraseBytes(string $str, int $maxLen): ?string {
         $len = \strlen($str);
         if ($len <= 1) {
             return null;
         }
-        $numBytes = $this->rng->randomInt($len >> 1) + 1;
+
+        $minNumBytes = $maxLen < $len ? $len - $maxLen : 0;
+        $maxNumBytes = min($minNumBytes + ($len >> 1), $len);
+        $numBytes = $this->rng->randomIntRange($minNumBytes, $maxNumBytes);
         $pos = $this->rng->randomInt($len - $numBytes + 1);
         return \substr($str, 0, $pos)
             . \substr($str, $pos + $numBytes);
     }
 
-    private function mutateInsertByte(string $str): string {
+    public function mutateInsertByte(string $str, int $maxLen): ?string {
+        if (\strlen($str) >= $maxLen) {
+            return null;
+        }
+
         $pos = $this->rng->randomPosOrEnd($str);
         return \substr($str, 0, $pos)
             . $this->randomBiasedChar()
             . \substr($str, $pos);
     }
 
-    private function mutateInsertRepeatedBytes(string $str): string {
+    public function mutateInsertRepeatedBytes(string $str, int $maxLen): ?string {
+        $minNumBytes = 3;
         $len = \strlen($str);
-        $numBytes = $this->rng->randomIntRange(3, 128);
+        if ($len + $minNumBytes >= $maxLen) {
+            return null;
+        }
+
+        $maxNumBytes = min($maxLen - $len, 128);
+        $numBytes = $this->rng->randomIntRange($minNumBytes, $maxNumBytes);
         $pos = $this->rng->randomPosOrEnd($str);
         // TODO: Biasing?
         $char = $this->rng->randomChar();
@@ -66,30 +83,32 @@ final class Mutator {
             . \substr($str, $pos);
     }
 
-    private function mutateChangeByte(string $str): ?string {
-        if ($str === '') {
+    public function mutateChangeByte(string $str, int $maxLen): ?string {
+        if ($str === '' || \strlen($str) > $maxLen) {
             return null;
         }
+
         $pos = $this->rng->randomPos($str);
         $str[$pos] = $this->randomBiasedChar();
         return $str;
     }
 
-    private function mutateChangeBit(string $str): ?string {
-        if ($str === '') {
+    public function mutateChangeBit(string $str, int $maxLen): ?string {
+        if ($str === '' || \strlen($str) > $maxLen) {
             return null;
         }
+
         $pos = $this->rng->randomPos($str);
         $bit = 1 << $this->rng->randomInt(8);
         $str[$pos] = \chr(\ord($str[$pos]) ^ $bit);
         return $str;
     }
 
-    private function mutateShuffleBytes(string $str): ?string {
-        if ($str === '') {
+    public function mutateShuffleBytes(string $str, int $maxLen): ?string {
+        $len = \strlen($str);
+        if ($str === '' || $len > $maxLen) {
             return null;
         }
-        $len = \strlen($str);
         $numBytes = $this->rng->randomInt(min($len, 8)) + 1;
         $pos = $this->rng->randomInt($len - $numBytes + 1);
         // TODO: This does not use the RNG!
@@ -99,11 +118,12 @@ final class Mutator {
 
     }
 
-    private function mutateChangeASCIIInt(string $str): ?string {
-        if ($str === '') {
+    public function mutateChangeASCIIInt(string $str, int $maxLen): ?string {
+        $len = \strlen($str);
+        if ($str === '' || $len > $maxLen) {
             return null;
         }
-        $len = \strlen($str);
+
         $beginPos = $this->rng->randomPos($str);
         while ($beginPos < $len && !\ctype_digit($str[$beginPos])) {
             $beginPos++;
@@ -133,6 +153,7 @@ final class Mutator {
             default:
                 assert(false);
         }
+        // TODO: May exceed maxLen?
         return \substr($str, 0, $beginPos)
             . (string) $int
             . \substr($str, $endPos);
@@ -150,9 +171,15 @@ final class Mutator {
             . \substr($to, $toBeg + $numBytes);
     }
 
-    private function insertPartOf(string $from, string $to): string {
+    private function insertPartOf(string $from, string $to, int $maxLen): ?string {
+        $toLen = \strlen($to);
+        if ($toLen >= $maxLen) {
+            return null;
+        }
+
         $fromLen = \strlen($from);
-        $numBytes = $this->rng->randomInt($fromLen) + 1;
+        $maxNumBytes = min($maxLen - $toLen, $fromLen);
+        $numBytes = $this->rng->randomInt($maxNumBytes) + 1;
         $fromBeg = $this->rng->randomInt($fromLen - $numBytes + 1);
         $toInsertPos = $this->rng->randomPosOrEnd($to);
         return \substr($to, 0, $toInsertPos)
@@ -160,24 +187,26 @@ final class Mutator {
             . \substr($to, $toInsertPos);
     }
 
-    private function crossOver(string $str1, string $str2): string {
+    private function crossOver(string $str1, string $str2, int $maxLen): string {
+        $maxLen = $this->rng->randomInt($maxLen) + 1;
         $len1 = \strlen($str1);
         $len2 = \strlen($str2);
         $pos1 = 0;
         $pos2 = 0;
         $result = '';
         $usingStr1 = true;
-        while ($pos1 < $len1 || $pos2 < $len2) {
+        while (\strlen($result) < $maxLen && ($pos1 < $len1 || $pos2 < $len2)) {
+            $maxLenLeft = $maxLen - \strlen($result);
             if ($usingStr1) {
                 if ($pos1 < $len1) {
-                    $maxExtraLen = $len1 - $pos1;
+                    $maxExtraLen = min($len1 - $pos1, $maxLenLeft);
                     $extraLen = $this->rng->randomInt($maxExtraLen) + 1;
                     $result .= \substr($str1, $pos1, $extraLen);
                     $pos1 += $extraLen;
                 }
             } else {
                 if ($pos2 < $len2) {
-                    $maxExtraLen = $len2 - $pos2;
+                    $maxExtraLen = min($len2 - $pos2, $maxLenLeft);
                     $extraLen = $this->rng->randomInt($maxExtraLen) + 1;
                     $result .= \substr($str2, $pos2, $extraLen);
                     $pos2 += $extraLen;
@@ -188,29 +217,34 @@ final class Mutator {
         return $result;
     }
 
-    private function mutateCopyPart(string $str): ?string {
-        if (empty($str)) {
+    public function mutateCopyPart(string $str, int $maxLen): ?string {
+        $len = \strlen($str);
+        if ($str === '' || $len > $maxLen) {
             return null;
         }
-        if ($this->rng->randomBool()) {
+        if ($len == $maxLen || $this->rng->randomBool()) {
             return $this->copyPartOf($str, $str);
         } else {
-            return $this->insertPartOf($str, $str);
+            return $this->insertPartOf($str, $str, $maxLen);
         }
     }
 
-    private function mutateCrossOver(string $str): ?string {
+    public function mutateCrossOver(string $str, int $maxLen): ?string {
         if ($this->crossOverWith === null) {
             return null;
         }
-        if (\strlen($str) === 0 || \strlen($this->crossOverWith) === 0) {
+        $len = \strlen($str);
+        if ($len > $maxLen || $len === 0 || \strlen($this->crossOverWith) === 0) {
             return null;
         }
         switch ($this->rng->randomInt(3)) {
             case 0:
-                return $this->crossOver($str, $this->crossOverWith);
+                return $this->crossOver($str, $this->crossOverWith, $maxLen);
             case 1:
-                return $this->insertPartOf($this->crossOverWith, $str);
+                if ($len == $maxLen) {
+                    return $this->insertPartOf($this->crossOverWith, $str, $maxLen);
+                }
+                /* fallthrough */
             case 2:
                 return $this->copyPartOf($this->crossOverWith, $str);
             default:
@@ -218,22 +252,29 @@ final class Mutator {
         }
     }
 
-    private function mutateAddWordFromManualDictionary(string $str): ?string {
+    public function mutateAddWordFromManualDictionary(string $str, int $maxLen): ?string {
+        $len = \strlen($str);
+        if ($len > $maxLen) {
+            return null;
+        }
         if ($this->dictionary->isEmpty()) {
             return null;
         }
 
         $word = $this->rng->randomElement($this->dictionary->dict);
+        $wordLen = \strlen($word);
         if ($this->rng->randomBool()) {
             // Insert word.
+            if ($len + $wordLen > $maxLen) {
+                return null;
+            }
+
             $pos = $this->rng->randomPosOrEnd($str);
             return \substr($str, 0, $pos)
                 . $word
                 . \substr($str, $pos);
         } else {
             // Overwrite with word.
-            $len = \strlen($str);
-            $wordLen = \strlen($word);
             if ($wordLen > $len) {
                 return null;
             }
@@ -245,11 +286,11 @@ final class Mutator {
         }
     }
 
-    public function mutate(string $str, ?string $crossOverWith): string {
+    public function mutate(string $str, int $maxLen, ?string $crossOverWith): string {
         $this->crossOverWith = $crossOverWith;
         while (true) {
             $mutator = $this->rng->randomElement($this->mutators);
-            $newStr = $mutator($str);
+            $newStr = $mutator($str, $maxLen);
             if (null !== $newStr) {
                 return $newStr;
             }

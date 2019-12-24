@@ -33,6 +33,7 @@ final class Fuzzer {
     private float $startTime;
     private int $mutationDepthLimit = 5;
     private int $maxRuns = PHP_INT_MAX;
+    private int $maxLen = PHP_INT_MAX;
 
     public function __construct() {
         $this->outputDir = getcwd();
@@ -109,6 +110,10 @@ final class Fuzzer {
         $this->interceptor->addWhiteList(realpath($path));
     }
 
+    public function setMaxLen(int $maxLen): void {
+        $this->maxLen = $maxLen;
+    }
+
     public function startInstrumentation(): void {
         $this->interceptor->setUp();
     }
@@ -127,7 +132,7 @@ final class Fuzzer {
             $crossOverEntry = $this->corpus->getRandomEntry($this->rng);
             $crossOverInput = $crossOverEntry !== null ? $crossOverEntry->input : null;
             for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
-                $input = $this->mutator->mutate($input, $crossOverInput);
+                $input = $this->mutator->mutate($input, $this->maxLen, $crossOverInput);
                 $entry = $this->runInput($input);
                 if ($entry->crashInfo) {
                     $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
@@ -295,7 +300,7 @@ final class Fuzzer {
 
         while ($this->runs < $this->maxRuns) {
             // TODO: Mutation depth, etc.
-            $newInput = $this->mutator->mutate($input, null);
+            $newInput = $this->mutator->mutate($input, $this->maxLen, null);
             if (\strlen($newInput) >= \strlen($input)) {
                 continue;
             }
