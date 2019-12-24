@@ -35,8 +35,6 @@ final class Fuzzer {
     private int $maxRuns = PHP_INT_MAX;
 
     public function __construct() {
-        // TODO: Cache instrumented files?
-        // TODO: Support "external instrumentation" to allow fuzzing php-parser.
         $this->outputDir = getcwd();
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
         $this->rng = new RNG();
