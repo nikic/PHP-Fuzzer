@@ -29,9 +29,11 @@ final class Instrumentor {
     }
 
     public function instrument(string $code, FileInfo $fileInfo): string {
+        $mutableStr = new MutableString($code);
         $this->context->fileInfo = $fileInfo;
+        $this->context->code = $mutableStr;
         $stmts = $this->parser->parse($code);
-        $stmts = $this->traverser->traverse($stmts);
-        return $this->prettyPrinter->prettyPrintFile($stmts);
+        $this->traverser->traverse($stmts);
+        return $mutableStr->getModifiedString();
     }
 }

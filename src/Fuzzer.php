@@ -196,6 +196,10 @@ final class Fuzzer {
             ($this->target)($input);
         } catch (\Exception $e) {
             // Assume that exceptions are not an abnormal conditions.
+        } catch (\ParseError $e) {
+            echo "PARSE ERROR $e\n";
+            echo "INSTRUMENTATION BROKEN? -- ABORTING";
+            exit(-1);
         } catch (\Error $e) {
             $crashInfo = (string) $e;
         }

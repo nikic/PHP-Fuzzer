@@ -8,6 +8,10 @@ use PhpParser\Node\Scalar;
 use PhpParser\Node\Stmt;
 use PhpParser\NodeVisitorAbstract;
 
+/**
+ * Visitor for inserting instrumentation code. It uses manual code insertion via a
+ * MutableString in order to preserve line numbers from the original code.
+ */
 final class Visitor extends NodeVisitorAbstract {
     private Context $context;
     public ?FileInfo $fileInfo = null;
@@ -24,14 +28,13 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\Else_ ||
             $node instanceof Stmt\ElseIf_ ||
             $node instanceof Stmt\Finally_ ||
-            $node instanceof Stmt\TryCatch ||
             $node instanceof Stmt\While_
         ) {
             if ($node->stmts === null) {
                 return null;
             }
 
-            $this->prependInlineBlockStub($node->stmts, $node->getStartFilePos());
+            $this->insertInlineBlockStubInStmts($node);
             return null;
         }
 
@@ -41,15 +44,18 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\For_ ||
             $node instanceof Stmt\Foreach_
         ) {
-            $this->prependInlineBlockStub($node->stmts, $node->getStartFilePos());
-            return [$node, ...$this->generateInlineBlockStub($node->getEndFilePos())];
+            $this->insertInlineBlockStubInStmts($node);
+            $this->appendInlineBlockStub($node);
+            return null;
         }
 
         // In these cases we need to insert one after the node only.
         if ($node instanceof Stmt\Label ||
-            $node instanceof Stmt\Switch_
+            $node instanceof Stmt\Switch_ ||
+            $node instanceof Stmt\TryCatch
         ) {
-            return [$node, ...$this->generateInlineBlockStub($node->getEndFilePos())];
+            $this->appendInlineBlockStub($node);
+            return null;
         }
 
         // For short-circuiting operators, insert a tracing call into one branch.
@@ -60,13 +66,13 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Expr\BinaryOp\Coalesce ||
             $node instanceof Expr\AssignOp\Coalesce
         ) {
-            $node->right = $this->generateTracingCall($node->right);
+            $this->insertTracingCall($node->right);
             return null;
         }
 
         // Same as previous case, just different subnode name.
         if ($node instanceof Expr\Ternary) {
-            $node->else = $this->generateTracingCall($node->else);
+            $this->insertTracingCall($node->else);
             return null;
         }
 
@@ -74,7 +80,8 @@ final class Visitor extends NodeVisitorAbstract {
         if ($node instanceof Expr\Yield_ ||
             $node instanceof Expr\YieldFrom
         ) {
-            return $this->generateTracingCall($node);
+            $this->insertTracingCall($node);
+            return null;
         }
 
         // TODO: Comparison instrumentation?
@@ -82,13 +89,49 @@ final class Visitor extends NodeVisitorAbstract {
         return null;
     }
 
-    private function prependInlineBlockStub(array &$stmts, int $pos): void {
-        // Insert inline block stub at start of statements.
-        $stub = $this->generateInlineBlockStub($pos);
-        array_splice($stmts, 0, 0, $stub);
+    private function insertInlineBlockStubInStmts(Node $node): void {
+        $stub = $this->generateInlineBlockStub($node->getStartFilePos());
+        if ($node instanceof Stmt\Do_) {
+            // do-while loops have odd structure, insert stub before the start,
+            // which is control-equivalent to within the do block.
+            $this->context->code->insert($node->getStartFilePos(), "$stub ");
+            return;
+        }
+
+        $stmts = $node->stmts;
+        if (!empty($stmts)) {
+            /** @var Stmt $firstStmt */
+            $firstStmt = $stmts[0];
+            $startPos = $firstStmt->getStartFilePos();
+            $endPos = $firstStmt->getEndFilePos();
+            // Wrap the statement in {} in case this is a single "stmt;" block.
+            $this->context->code->insert($startPos, "{ $stub ", 0);
+            $this->context->code->insert($endPos + 1, " }", 1);
+            return;
+        }
+
+        // We have an empty statement list. This may be represented as "{}", ";"
+        // or, in case of a "case" statement, nothing.
+        $endPos = $node->getEndFilePos();
+        $endChar = $this->context->code->getOrigString()[$endPos];
+        if ($endChar === '}') {
+            $this->context->code->insert($endPos, " $stub ");
+        } else if ($endChar === ';') {
+            $this->context->code->replace($endPos, 1, "{ $stub }");
+        } else if ($endChar === ':') {
+            $this->context->code->insert($endPos + 1, " $stub");
+        } else {
+            assert(false);
+        }
     }
 
-    private function generateInlineBlockStub(int $pos): array {
+    private function appendInlineBlockStub(Stmt $stmt): void {
+        $endPos = $stmt->getEndFilePos();
+        $stub = $this->generateInlineBlockStub($endPos);
+        $this->context->code->insert($endPos + 1, " $stub");
+    }
+
+    private function generateInlineBlockStub(int $pos): string {
         // We generate the following code:
         //   $___key = (Context::$prevBlock << 28) | BLOCK_INDEX;
         //   Context::$edges[$___key] = (Context::$edges[$___key] ?? 0) + 1;
@@ -96,46 +139,20 @@ final class Visitor extends NodeVisitorAbstract {
         // We use a 28-bit block index to leave 8-bits to encode a logarithmic trip count.
         // TODO: When I originally picked this format, I forgot about the initialization issue.
         // TODO: It probably makes sense to switch this to something that can be pre-initialized.
-        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex($pos));
-        $keyVar = new Expr\Variable('___key');
-        $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
-        $edgesVar = new Expr\StaticPropertyFetch($context, 'edges');
-        $edgesKeyVar = new Expr\ArrayDimFetch($edgesVar, $keyVar);
-        $prevBlockVar = new Expr\StaticPropertyFetch($context, 'prevBlock');
-        return [
-            new Stmt\Expression(
-                new Expr\Assign($keyVar, new Expr\BinaryOp\BitwiseOr(
-                    new Expr\BinaryOp\ShiftLeft(
-                        $prevBlockVar,
-                        new Scalar\LNumber(28)
-                    ),
-                    $blockIndex
-                ))
-            ),
-            new Stmt\Expression(
-                new Expr\Assign(
-                    $edgesKeyVar,
-                    new Expr\BinaryOp\Plus(
-                        new Expr\BinaryOp\Coalesce(
-                            $edgesKeyVar,
-                            new Scalar\LNumber(0)
-                        ),
-                        new Scalar\LNumber(1)
-                    )
-                )
-            ),
-            new Stmt\Expression(
-                new Expr\Assign($prevBlockVar, $blockIndex)
-            ),
-        ];
+        $blockIndex = $this->context->getNewBlockIndex($pos);
+        $contextName = $this->context->runtimeContextName;
+        return "\$___key = (\\$contextName::\$prevBlock << 28) | $blockIndex; "
+            . "\\$contextName::\$edges[\$___key] = (\\$contextName::\$edges[\$___key] ?? 0) + 1; "
+            . "\\$contextName::\$prevBlock = $blockIndex;";
     }
 
-    private function generateTracingCall(Expr $origExpr): Expr {
-        $context = new Node\Name\FullyQualified($this->context->runtimeContextName);
-        $blockIndex = new Scalar\LNumber($this->context->getNewBlockIndex($origExpr->getStartFilePos()));
-        return new Expr\StaticCall($context, 'traceBlock', [
-            new Node\Arg($blockIndex),
-            new Node\Arg($origExpr),
-        ]);
+    private function insertTracingCall(Expr $expr): void {
+        $startPos = $expr->getStartFilePos();
+        $endPos = $expr->getEndFilePos();
+        $blockIndex = $this->context->getNewBlockIndex($startPos);
+        $contextName = $this->context->runtimeContextName;
+
+        $this->context->code->insert($startPos, "\\$contextName::traceBlock($blockIndex, ", 1);
+        $this->context->code->insert($endPos + 1, ")", 0);
     }
 }

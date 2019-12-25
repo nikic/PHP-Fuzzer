@@ -13,12 +13,13 @@ class InstrumentorTest extends TestCase {
 function test() {
     $x;
     if ($x && $y) {
-        $x;
+        yield $x;
     }
+    if ($x);
     while ($x || $y) {
         $x;
         do {
-            yield $x;
+            $x;
         } while ($x);
     }
     for ($x; $x; $x) {
@@ -26,6 +27,9 @@ function test() {
             $x;
         }
     }
+    try { $x; }
+    catch (E $y) {}
+    finally { $a; }
 }
 interface Foo {
     public function bar();
@@ -34,80 +38,41 @@ CODE;
 
         $expected = <<<'CODE'
 <?php
-
-function test()
-{
-    $___key = \InstrumentationContext::$prevBlock << 28 | 13;
-    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-    \InstrumentationContext::$prevBlock = 13;
-    $x;
+function test() {
+    { $___key = (\InstrumentationContext::$prevBlock << 28) | 18; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 18; $x; }
     if ($x && \InstrumentationContext::traceBlock(1, $y)) {
-        $___key = \InstrumentationContext::$prevBlock << 28 | 2;
-        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-        \InstrumentationContext::$prevBlock = 2;
-        $x;
-    }
-    $___key = \InstrumentationContext::$prevBlock << 28 | 3;
-    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-    \InstrumentationContext::$prevBlock = 3;
-    while ($x || \InstrumentationContext::traceBlock(4, $y)) {
-        $___key = \InstrumentationContext::$prevBlock << 28 | 8;
-        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-        \InstrumentationContext::$prevBlock = 8;
-        $x;
-        do {
-            $___key = \InstrumentationContext::$prevBlock << 28 | 6;
-            \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-            \InstrumentationContext::$prevBlock = 6;
-            \InstrumentationContext::traceBlock(5, (yield $x));
-        } while ($x);
-        $___key = \InstrumentationContext::$prevBlock << 28 | 7;
-        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-        \InstrumentationContext::$prevBlock = 7;
+        { $___key = (\InstrumentationContext::$prevBlock << 28) | 3; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 3; \InstrumentationContext::traceBlock(2, yield $x); }
+    } $___key = (\InstrumentationContext::$prevBlock << 28) | 4; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 4;
+    if ($x){ $___key = (\InstrumentationContext::$prevBlock << 28) | 5; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 5; } $___key = (\InstrumentationContext::$prevBlock << 28) | 6; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 6;
+    while ($x || \InstrumentationContext::traceBlock(7, $y)) {
+        { $___key = (\InstrumentationContext::$prevBlock << 28) | 10; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 10; $x; }
+        $___key = (\InstrumentationContext::$prevBlock << 28) | 8; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 8; do {
+            $x;
+        } while ($x); $___key = (\InstrumentationContext::$prevBlock << 28) | 9; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 9;
     }
     for ($x; $x; $x) {
-        $___key = \InstrumentationContext::$prevBlock << 28 | 11;
-        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-        \InstrumentationContext::$prevBlock = 11;
-        foreach ($x as $x) {
-            $___key = \InstrumentationContext::$prevBlock << 28 | 9;
-            \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-            \InstrumentationContext::$prevBlock = 9;
-            $x;
-        }
-        $___key = \InstrumentationContext::$prevBlock << 28 | 10;
-        \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-        \InstrumentationContext::$prevBlock = 10;
-    }
-    $___key = \InstrumentationContext::$prevBlock << 28 | 12;
-    \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1;
-    \InstrumentationContext::$prevBlock = 12;
+        { $___key = (\InstrumentationContext::$prevBlock << 28) | 13; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 13; foreach ($x as $x) {
+            { $___key = (\InstrumentationContext::$prevBlock << 28) | 11; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 11; $x; }
+        } $___key = (\InstrumentationContext::$prevBlock << 28) | 12; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 12; }
+    } $___key = (\InstrumentationContext::$prevBlock << 28) | 14; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 14;
+    try { $x; }
+    catch (E $y) { $___key = (\InstrumentationContext::$prevBlock << 28) | 15; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 15; }
+    finally { { $___key = (\InstrumentationContext::$prevBlock << 28) | 16; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 16; $a; } } $___key = (\InstrumentationContext::$prevBlock << 28) | 17; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 17;
 }
-interface Foo
-{
+interface Foo {
     public function bar();
 }
 CODE;
-        $expectedFileInfo = [
-            1 => 46,
-            2 => 36,
-            3 => 68,
-            4 => 87,
-            5 => 130,
-            6 => 113,
-            7 => 160,
-            8 => 74,
-            9 => 199,
-            10 => 244,
-            11 => 172,
-            12 => 250,
-            13 => 6,
-        ];
 
         $instrumentor = new Instrumentor('InstrumentationContext');
         $fileInfo = new FileInfo();
         $output = $instrumentor->instrument($input, $fileInfo);
         $this->assertSame($expected, $output);
-        $this->assertSame($expectedFileInfo, $fileInfo->blockIndexToPos);
+        $this->assertNotEmpty($fileInfo->blockIndexToPos);
+
+        // The number of lines should be preserved.
+        $inputNewlines = substr_count($input, "\n");
+        $outputNewlines = substr_count($output, "\n");
+        $this->assertSame($inputNewlines, $outputNewlines);
     }
 }
