@@ -54,6 +54,14 @@ final class Corpus {
         return $this->len;
     }
 
+    public function getMaxLen(): int {
+        $maxLen = 0;
+        foreach ($this->entries as $entry) {
+            $maxLen = max($maxLen, \strlen($entry->input));
+        }
+        return $maxLen;
+    }
+
     public function getSeenBlockMap(): array {
         $blocks = [];
         foreach ($this->seenFeatures as $feature => $_) {

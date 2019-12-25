@@ -29,11 +29,13 @@ final class Fuzzer {
     private array $fileInfos = [];
 
     private int $runs = 0;
+    private int $lastInterestingRun = 0;
     private int $initialFeatures;
     private float $startTime;
     private int $mutationDepthLimit = 5;
     private int $maxRuns = PHP_INT_MAX;
     private int $maxLen = PHP_INT_MAX;
+    private int $lenControlFactor = 200;
 
     public function __construct() {
         $this->outputDir = getcwd();
@@ -123,6 +125,9 @@ final class Fuzzer {
             return;
         }
 
+        // Start with a short maximum length, increase if we fail to make progress.
+        $maxLen = min($this->maxLen, max(4, $this->corpus->getMaxLen()));
+
         // Don't count runs while loading the corpus.
         $this->runs = 0;
         $this->startTime = microtime(true);
@@ -132,7 +137,7 @@ final class Fuzzer {
             $crossOverEntry = $this->corpus->getRandomEntry($this->rng);
             $crossOverInput = $crossOverEntry !== null ? $crossOverEntry->input : null;
             for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
-                $input = $this->mutator->mutate($input, $this->maxLen, $crossOverInput);
+                $input = $this->mutator->mutate($input, $maxLen, $crossOverInput);
                 $entry = $this->runInput($input);
                 if ($entry->crashInfo) {
                     $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
@@ -148,6 +153,7 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
 
+                    $this->lastInterestingRun = $this->runs;
                     $this->printAction('NEW');
                     break;
                 }
@@ -165,8 +171,20 @@ final class Fuzzer {
                     $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
                     file_put_contents($entry->path, $entry->input);
                     unlink($origEntry->path);
+
+                    $this->lastInterestingRun = $this->runs;
                     $this->printAction('REDUCE');
                     break;
+                }
+            }
+
+            if ($maxLen < $this->maxLen) {
+                // Increase max length if we haven't made progress in a while.
+                $logMaxLen = (int) log($maxLen, 2);
+                if (($this->runs - $this->lastInterestingRun) > $this->lenControlFactor * $logMaxLen) {
+                    $maxLen = min($this->maxLen, $maxLen + $logMaxLen);
+                    $this->lastInterestingRun = $this->runs;
+                    echo "MAXLEN $maxLen\n";
                 }
             }
         }
@@ -324,6 +342,7 @@ final class Fuzzer {
             ['h', 'help', GetOpt::NO_ARGUMENT],
             ['dict', GetOpt::REQUIRED_ARGUMENT],
             ['max-runs', GetOpt::REQUIRED_ARGUMENT],
+            ['len-control-factor', GetOpt::REQUIRED_ARGUMENT],
         ]);
         $getOpt->addOperand(Operand::create('target', Operand::REQUIRED));
 
@@ -360,6 +379,9 @@ final class Fuzzer {
         $opts = $getOpt->getOptions();
         if (isset($opts['max-runs'])) {
             $this->maxRuns = (int) $opts['max-runs'];
+        }
+        if (isset($opts['len-control-factor'])) {
+            $this->lenControlFactor = (int) $opts['len-control-factor'];
         }
         if (isset($opts['dict'])) {
             $this->addDictionary($opts['dict']);
