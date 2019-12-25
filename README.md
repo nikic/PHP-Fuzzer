@@ -1,20 +1,33 @@
 PHP Fuzzer
 ==========
 
-This experiment implements a primitive fuzzer for PHP. The fuzzing target is instrumented via include interception in
-order to record edge coverage during execution of the target. Fuzzer inputs are mutated in an attempt to increase
-edge coverage.
+This library implements a [fuzzer](https://en.wikipedia.org/wiki/Fuzzing) for PHP,
+which can be used to find bugs in libraries (particularly parsing libraries) by feeding
+them "random" inputs. Feedback from edge coverage instrumentation is used to guide the
+choice of "random" inputs, such that new code paths are visited. Many of the technical
+details of this fuzzer are based on [libFuzzer](https://llvm.org/docs/LibFuzzer.html)
+from the LLVM project.
 
 Usage
 -----
 
-First, a definition of the target function is necessary. Here is a basic example based on
-`example/target_tolerant_php_parser.php`:
+First, a definition of the target function is necessary. Here is an example target for
+finding bugs in [microsoft/tolerant-php-parser](https://github.com/microsoft/tolerant-php-parser):
 
 ```php
 <?php // target.php
 
 /** @var PhpFuzzer\Fuzzer $fuzzer */
+
+require 'path/to/tolerant-php-parser/vendor/autoload.php';
+
+// Required: The target accepts a single input string and runs it through the tested
+//           library. The target is allowed to throw normal Exceptions (which are ignored),
+//           but Error exceptions are considered as a found bug.
+$parser = new Microsoft\PhpParser\Parser();
+$fuzzer->setTarget(function(string $input) use($parser) {
+    $parser->parseSourceFile($input);
+});
 
 // Optional: Many targets don't exhibit bugs on large inputs that can't also be
 //           produced with small inputs. Limiting the length may improve performance.
@@ -24,13 +37,6 @@ $fuzzer->setMaxLen(1024);
 //           cannot be easily discovered by the fuzzer, because they are handled
 //           by a non-instrumented PHP extension function such as token_get_all().
 $fuzzer->addDictionary('example/php.dict');
-
-require 'path/to/tolerant-php-parser/vendor/autoload.php';
-
-$parser = new Microsoft\PhpParser\Parser();
-$fuzzer->setTarget(function(string $input) use($parser) {
-    $parser->parseSourceFile($input);
-});
 ```
 
 The fuzzer is run against a corpus of initial "interesting" inputs, which can for example
