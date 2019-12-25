@@ -353,6 +353,9 @@ final class Fuzzer {
             Option::create(null, 'max-runs', GetOpt::REQUIRED_ARGUMENT)
                 ->setArgumentName('num')
                 ->setDescription('Limit maximum target executions'),
+            Option::create(null, 'timeout', GetOpt::REQUIRED_ARGUMENT)
+                ->setArgumentName('seconds')
+                ->setDescription('Timeout for one target execution'),
             Option::create(null, 'len-control-factor', GetOpt::REQUIRED_ARGUMENT)
                 ->setArgumentName('num')
                 ->setDescription('A higher value will increase the maximum length more slowly'),
@@ -396,6 +399,9 @@ final class Fuzzer {
         $opts = $getOpt->getOptions();
         if (isset($opts['max-runs'])) {
             $this->maxRuns = (int) $opts['max-runs'];
+        }
+        if (isset($opts['timeout'])) {
+            $this->timeout = (int) $opts['timeout'];
         }
         if (isset($opts['len-control-factor'])) {
             $this->lenControlFactor = (int) $opts['len-control-factor'];
