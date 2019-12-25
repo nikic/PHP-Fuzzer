@@ -6,7 +6,6 @@
 
 $fuzzer->setMaxLen(1024);
 $fuzzer->addDictionary(__DIR__ . '/php.dict');
-$fuzzer->addInstrumentedDir(__DIR__ . '/../../PHP-Parser/lib');
 
 require __DIR__ . '/../../PHP-Parser/vendor/autoload.php';
 $parser = new PhpParser\Parser\Php7(new PhpParser\Lexer);

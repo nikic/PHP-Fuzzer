@@ -49,22 +49,10 @@ final class Fuzzer {
         $this->mutator = new Mutator($this->rng, $this->dictionary);
         $this->corpus = new Corpus();
 
-        // TODO: Work around lack of file whitelist in interceptor.
-        $this->interceptor = new class($this) extends Interceptor {
-            private Fuzzer $fuzzer;
-            public function __construct(Fuzzer $fuzzer) {
-                $this->fuzzer = $fuzzer;
-                parent::__construct();
-            }
-
-            public function shouldIntercept($path) {
-                if ($path === $this->fuzzer->targetPath) {
-                    return true;
-                }
-                return parent::shouldIntercept($path);
-            }
-        };
-
+        // Instrument everything apart from our src/ directory.
+        $this->interceptor = new Interceptor();
+        $this->interceptor->addWhiteList('');
+        $this->interceptor->addBlackList(__DIR__);
         $this->interceptor->addHook(function(string $code, string $path) {
             $fileInfo = new FileInfo();
             $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
@@ -110,10 +98,6 @@ final class Fuzzer {
 
         $parser = new DictionaryParser();
         $this->dictionary->addWords($parser->parse(file_get_contents($path)));
-    }
-
-    public function addInstrumentedDir(string $path): void {
-        $this->interceptor->addWhiteList(realpath($path));
     }
 
     public function setMaxLen(int $maxLen): void {
@@ -166,7 +150,7 @@ final class Fuzzer {
                     file_put_contents($entry->path, $entry->input);
 
                     $this->lastInterestingRun = $this->runs;
-                    $this->printAction('NEW');
+                    $this->printAction('NEW', $entry);
                     break;
                 }
 
@@ -185,7 +169,7 @@ final class Fuzzer {
                     unlink($origEntry->path);
 
                     $this->lastInterestingRun = $this->runs;
-                    $this->printAction('REDUCE');
+                    $this->printAction('REDUCE', $entry);
                     break;
                 }
             }
@@ -196,7 +180,6 @@ final class Fuzzer {
                 if (($this->runs - $this->lastInterestingRun) > $this->lenControlFactor * $logMaxLen) {
                     $maxLen = min($this->maxLen, $maxLen + $logMaxLen);
                     $this->lastInterestingRun = $this->runs;
-                    echo "MAXLEN $maxLen\n";
                 }
             }
         }
@@ -281,24 +264,32 @@ final class Fuzzer {
         return true;
     }
 
-    private function printAction(string $action) {
+    private function printAction(string $action, CorpusEntry $entry) {
         $time = microtime(true) - $this->startTime;
+        $mem = memory_get_usage();
         $numFeatures = $this->corpus->getNumFeatures();
         $numNewFeatures = $numFeatures - $this->initialFeatures;
-        echo sprintf("%-6s run: %d (%4.0f/s), ft: %d (%3.0f/s), corpus: %d (%s), t: %.0fs\n",
+        $maxLen = $this->corpus->getMaxLen();
+        $maxLenLen = \strlen((string) $maxLen);
+        echo sprintf(
+            "%-6s run: %d (%4.0f/s), ft: %d (%.0f/s), corpus: %d (%s), len: %{$maxLenLen}d/%d, t: %.0fs, mem: %s\n",
             $action, $this->runs, $this->runs / $time,
             $numFeatures, $numNewFeatures / $time,
             $this->corpus->getNumCorpusEntries(),
             $this->formatBytes($this->corpus->getTotalLen()),
-            $time);
+            \strlen($entry->input), $maxLen,
+            $time, $this->formatBytes($mem));
     }
 
     private function formatBytes(int $bytes): string {
-        if ($bytes < 16 * 1024) {
+        if ($bytes < 10 * 1024) {
             return $bytes . 'b';
-        } else {
+        } else if ($bytes < 10 * 1024 * 1024) {
             $kiloBytes = (int) round($bytes / 1024);
             return $kiloBytes . 'kb';
+        } else {
+            $megaBytes = (int) round($bytes / (1024 * 1024));
+            return $megaBytes . 'mb';
         }
     }
 

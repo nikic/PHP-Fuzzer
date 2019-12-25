@@ -13,7 +13,8 @@ final class Corpus {
     private array $crashEntries = [];
     private array $seenCrashFeatures = [];
 
-    private int $len = 0;
+    private int $totalLen = 0;
+    private int $maxLen = 0;
 
     public function computeUniqueFeatures(CorpusEntry $entry) {
         $entry->uniqueFeatures = [];
@@ -29,14 +30,16 @@ final class Corpus {
         foreach ($entry->uniqueFeatures as $feature => $_) {
             $this->seenFeatures[$feature] = true;
         }
-        $this->len += \strlen($entry->input);
+        $len = \strlen($entry->input);
+        $this->totalLen += $len;
+        $this->maxLen = max($this->maxLen, $len);
     }
 
     public function replaceEntry(CorpusEntry $origEntry, CorpusEntry $newEntry): void {
         $idx = array_search($origEntry, $this->entries); // TODO: Optimize
         $this->entries[$idx] = $newEntry;
-        $this->len -= \strlen($origEntry->input);
-        $this->len += \strlen($newEntry->input);
+        $this->totalLen -= \strlen($origEntry->input);
+        $this->totalLen += \strlen($newEntry->input);
     }
 
     public function getRandomEntry(RNG $rng): ?CorpusEntry {
@@ -56,15 +59,11 @@ final class Corpus {
     }
 
     public function getTotalLen(): int {
-        return $this->len;
+        return $this->totalLen;
     }
 
     public function getMaxLen(): int {
-        $maxLen = 0;
-        foreach ($this->entries as $entry) {
-            $maxLen = max($maxLen, \strlen($entry->input));
-        }
-        return $maxLen;
+        return $this->maxLen;
     }
 
     public function getSeenBlockMap(): array {

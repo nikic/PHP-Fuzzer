@@ -7,7 +7,6 @@
 
 $fuzzer->setMaxLen(1024);
 $fuzzer->addDictionary(__DIR__ . '/php.dict');
-$fuzzer->addInstrumentedDir(__DIR__ . '/../../tolerant-php-parser/src');
 
 require __DIR__ . '/../../tolerant-php-parser/vendor/autoload.php';
 $parser = new Microsoft\PhpParser\Parser();
