@@ -114,7 +114,7 @@ final class Mutator {
         // TODO: This does not use the RNG!
         return \substr($str, 0, $pos)
             . \str_shuffle(\substr($str, $pos, $numBytes))
-            . \substr($str, $numBytes);
+            . \substr($str, $pos + $numBytes);
 
     }
 
@@ -153,9 +153,14 @@ final class Mutator {
             default:
                 assert(false);
         }
-        // TODO: May exceed maxLen?
+
+        $intStr = (string) $int;
+        if ($len - ($endPos - $beginPos) + \strlen($intStr) > $maxLen) {
+            return null;
+        }
+
         return \substr($str, 0, $beginPos)
-            . (string) $int
+            . $intStr
             . \substr($str, $endPos);
     }
 
@@ -292,6 +297,7 @@ final class Mutator {
             $mutator = $this->rng->randomElement($this->mutators);
             $newStr = $mutator($str, $maxLen);
             if (null !== $newStr) {
+                assert(\strlen($newStr) <= $maxLen, 'Mutator ' . $mutator[1]);
                 return $newStr;
             }
         }

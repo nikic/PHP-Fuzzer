@@ -35,4 +35,12 @@ final class RNG {
     public function randomBool(): bool {
         return (bool) \mt_rand(0, 1);
     }
+
+    public function randomString(int $len): string {
+        $result = '';
+        for ($i = 0; $i < $len; $i++) {
+            $result .= $this->randomChar();
+        }
+        return $result;
+    }
 }
