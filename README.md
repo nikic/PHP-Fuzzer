@@ -3,42 +3,71 @@ PHP Fuzzer
 
 This experiment implements a primitive fuzzer for PHP. The fuzzing target is instrumented via include interception in
 order to record edge coverage during execution of the target. Fuzzer inputs are mutated in an attempt to increase
-edge coverage. A reduced representation of the coverage can also be rendered.
-
-This is just a quick experiment, it does not work particularly well.
+edge coverage.
 
 Usage
 -----
 
-First, a definition of the target function is necessary. Here is a basic example from `example/target_simple.php`:
+First, a definition of the target function is necessary. Here is a basic example based on
+`example/target_tolerant_php_parser.php`:
 
 ```php
 <?php // target.php
 
 /** @var PhpFuzzer\Fuzzer $fuzzer */
-$fuzzer->setTarget(function(string $input) {
-    if (strlen($input) >= 4 && $input[0] == 'z' && $input[3] == 'k') {
-        throw new Error('Bug!');
-    }
+
+// Optional: Many targets don't exhibit bugs on large inputs that can't also be
+//           produced with small inputs. Limiting the length may improve performance.
+$fuzzer->setMaxLen(1024);
+// Optional: A dictionary can be used to provide useful fragments to the fuzzer,
+//           such as language keywords. This is particularly important if these
+//           cannot be easily discovered by the fuzzer, because they are handled
+//           by a non-instrumented PHP extension function such as token_get_all().
+$fuzzer->addDictionary('example/php.dict');
+
+require 'path/to/tolerant-php-parser/vendor/autoload.php';
+
+$parser = new Microsoft\PhpParser\Parser();
+$fuzzer->setTarget(function(string $input) use($parser) {
+    $parser->parseSourceFile($input);
 });
 ```
 
-See `example/target_tolerant_php_parser.php` for a more realistic target.
-
-Then, one of multiple commands may be used through the `php-fuzz` binary:
+The fuzzer is run against a corpus of initial "interesting" inputs, which can for example
+be seeded based on existing unit tests. One input is provided per file. However, we can
+also start from an empty corpus:
 
 ```shell script
-# Run the fuzzer!
-# corpus/ specifies both the starting corpus,
-# as well as the directory for new corpus entries
+mkdir corpus/
 php-fuzzer fuzz target.php corpus/
+```
 
-# After a crashing input has been found, you may want to minimize it
-php-fuzzer minimize-crash target.php crashing_input.txt
+If fuzzing is interrupted, it can later be resumed by specifying the same corpus directory.
 
-# You can also simply run a single intput through the target
-php-fuzzer run-single target.php single_input.txt
+Once a crash has been found, it is written into a `crash-HASH.txt` file. It is provided in the
+form it was originally found, which may be unnecessarily complex and contain fragments not
+relevant to the crash. As such, you likely want to reduce the crashing input first:
 
-# To see which code-paths have been explored, an HTML coverage report can be generated
+```shell script
+php-fuzzer minimize-crash target.php crash-HASH.txt
+```
+
+This will product a sequence of successively smaller `minimized-HASH.txt` files. If you want to
+quickly check the exception trace produced for a crashing input, you can use the `run-single`
+command:
+
+```shell script
+php-fuzzer run-single target.php minimized-HASH.txt
+```
+
+Finally, it is possible to generate a HTML code coverage report, which shows which code blocks in
+the target are hit when executing inputs from a given corpus:
+
+```shell script
 php-fuzzer report-coverage target.php corpus/ coverage_dir/
 ```
+
+Additionally configuration options can be shown with `php-fuzzer --help`.
+
+> Note: In order to fuzz libraries that have a dependency on PHP-Parser, it is necessary to use
+> a prefixed phar. Run `box.phar compile` and then use `bin/php-fuzzer.phar`.

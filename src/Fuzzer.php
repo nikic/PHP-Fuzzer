@@ -6,6 +6,7 @@ use GetOpt\ArgumentException;
 use GetOpt\Command;
 use GetOpt\GetOpt;
 use GetOpt\Operand;
+use GetOpt\Option;
 use Icewind\Interceptor\Interceptor;
 use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
@@ -272,7 +273,7 @@ final class Fuzzer {
         $maxLen = $this->corpus->getMaxLen();
         $maxLenLen = \strlen((string) $maxLen);
         echo sprintf(
-            "%-6s run: %d (%4.0f/s), ft: %d (%.0f/s), corpus: %d (%s), len: %{$maxLenLen}d/%d, t: %.0fs, mem: %s\n",
+            "%-6s run: %d (%4.0f/s), ft: %d (%.0f/s), corp: %d (%s), len: %{$maxLenLen}d/%d, t: %.0fs, mem: %s\n",
             $action, $this->runs, $this->runs / $time,
             $numFeatures, $numNewFeatures / $time,
             $this->corpus->getNumCorpusEntries(),
@@ -342,22 +343,33 @@ final class Fuzzer {
 
     public function handleCliArgs() {
         $getOpt = new GetOpt([
-            ['h', 'help', GetOpt::NO_ARGUMENT],
-            ['dict', GetOpt::REQUIRED_ARGUMENT],
-            ['max-runs', GetOpt::REQUIRED_ARGUMENT],
-            ['len-control-factor', GetOpt::REQUIRED_ARGUMENT],
+            Option::create('h', 'help', GetOpt::NO_ARGUMENT)
+                ->setDescription('Display this help'),
+            Option::create(null, 'dict', GetOpt::REQUIRED_ARGUMENT)
+                ->setArgumentName('file')
+                ->setDescription('Use dictionary file'),
+            Option::create(null, 'max-runs', GetOpt::REQUIRED_ARGUMENT)
+                ->setArgumentName('num')
+                ->setDescription('Limit maximum target executions'),
+            Option::create(null, 'len-control-factor', GetOpt::REQUIRED_ARGUMENT)
+                ->setArgumentName('num')
+                ->setDescription('A higher value will increase the maximum length more slowly'),
         ]);
         $getOpt->addOperand(Operand::create('target', Operand::REQUIRED));
 
-        $getOpt->addCommand(Command::create('minimize-crash', [$this, 'handleMinimizeCrashCommand'])
-            ->addOperand(Operand::create('input', Operand::REQUIRED)));
-        $getOpt->addCommand(Command::create('run-single', [$this, 'handleRunSingleCommand'])
-            ->addOperand(Operand::create('input', Operand::REQUIRED)));
         $getOpt->addCommand(Command::create('fuzz', [$this, 'handleFuzzCommand'])
-            ->addOperand(Operand::create('corpus', Operand::REQUIRED)));
+            ->addOperand(Operand::create('corpus', Operand::REQUIRED))
+            ->setDescription('Fuzz the target to find bugs'));
+        $getOpt->addCommand(Command::create('minimize-crash', [$this, 'handleMinimizeCrashCommand'])
+            ->addOperand(Operand::create('input', Operand::REQUIRED))
+            ->setDescription('Reduce the size of a crashing input'));
+        $getOpt->addCommand(Command::create('run-single', [$this, 'handleRunSingleCommand'])
+            ->addOperand(Operand::create('input', Operand::REQUIRED))
+            ->setDescription('Run single input through target'));
         $getOpt->addCommand(Command::create('report-coverage', [$this, 'handleReportCoverage'])
             ->addOperand(Operand::create('corpus', Operand::REQUIRED))
-            ->addOperand(Operand::create('coverage-dir', Operand::REQUIRED)));
+            ->addOperand(Operand::create('coverage-dir', Operand::REQUIRED))
+            ->setDescription('Generate a HTML coverage report'));
 
         try {
             $getOpt->process();
@@ -416,6 +428,9 @@ final class Fuzzer {
     }
 
     private function handleMinimizeCrashCommand(GetOpt $getOpt) {
+        if ($this->maxRuns === PHP_INT_MAX) {
+            $this->maxRuns = 100000;
+        }
         $this->minimizeCrash($getOpt->getOperand('input'));
     }
 
