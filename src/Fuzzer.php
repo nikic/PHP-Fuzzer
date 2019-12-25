@@ -37,6 +37,7 @@ final class Fuzzer {
     private int $maxRuns = PHP_INT_MAX;
     private int $maxLen = PHP_INT_MAX;
     private int $lenControlFactor = 200;
+    private int $timeout = 3;
 
     // Counts all crashes, including duplicates
     private int $crashes = 0;
@@ -188,6 +189,7 @@ final class Fuzzer {
 
     private function runInput(string $input) {
         $this->runs++;
+        pcntl_alarm($this->timeout);
         FuzzingContext::reset();
         $crashInfo = null;
         try {
@@ -332,11 +334,11 @@ final class Fuzzer {
                 continue;
             }
 
-            $path = getcwd() . '/minimized-' . md5($newInput) . '.txt';
-            file_put_contents($path, $newInput);
+            $entry->path = getcwd() . '/minimized-' . md5($newInput) . '.txt';
+            file_put_contents($entry->path, $newInput);
 
             $len = \strlen($newInput);
-            echo "CRASH $len @ $path\n";
+            $this->printCrash("CRASH with length $len", $entry);
             $input = $newInput;
         }
     }
@@ -402,6 +404,8 @@ final class Fuzzer {
             $this->addDictionary($opts['dict']);
         }
 
+        $this->setupTimeoutHandler();
+        $this->setupErrorHandler();
         $this->loadTarget($getOpt->getOperand('target'));
 
         $command->getHandler()($getOpt);
@@ -439,5 +443,23 @@ final class Fuzzer {
         $this->setCoverageDir($getOpt->getOperand('coverage-dir'));
         $this->loadCorpus();
         $this->renderCoverage();
+    }
+
+    private function setupTimeoutHandler(): void {
+        pcntl_signal(SIGALRM, function() {
+            throw new \Error("Timeout of {$this->timeout} seconds exceeded");
+        });
+        pcntl_async_signals(true);
+    }
+
+    private function setupErrorHandler(): void {
+        set_error_handler(function($errno, $errstr, $errfile, $errline) {
+            if (!(error_reporting() & $errno)) {
+                return true;
+            }
+
+            throw new \Error(sprintf(
+                '[%d] %s in %s on line %d', $errno, $errstr, $errfile, $errline));
+        });
     }
 }
