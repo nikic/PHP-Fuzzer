@@ -37,6 +37,10 @@ final class Fuzzer {
     private int $maxLen = PHP_INT_MAX;
     private int $lenControlFactor = 200;
 
+    // Counts all crashes, including duplicates
+    private int $crashes = 0;
+    private int $maxCrashes = 100;
+
     public function __construct() {
         $this->outputDir = getcwd();
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
@@ -140,10 +144,18 @@ final class Fuzzer {
                 $input = $this->mutator->mutate($input, $maxLen, $crossOverInput);
                 $entry = $this->runInput($input);
                 if ($entry->crashInfo) {
-                    $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
-                    file_put_contents($entry->path, $entry->input);
-                    $this->printCrash('CRASH', $entry);
-                    return;
+                    if ($this->corpus->addCrashEntry($entry)) {
+                        $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
+                        file_put_contents($entry->path, $entry->input);
+                        $this->printCrash('CRASH', $entry);
+                    } else {
+                        echo "DUPLICATE CRASH\n";
+                    }
+                    if (++$this->crashes >= $this->maxCrashes) {
+                        echo "Maximum of {$this->maxCrashes} crashes reached, aborting\n";
+                        return;
+                    }
+                    break;
                 }
 
                 $this->corpus->computeUniqueFeatures($entry);
@@ -273,7 +285,7 @@ final class Fuzzer {
         $time = microtime(true) - $this->startTime;
         $numFeatures = $this->corpus->getNumFeatures();
         $numNewFeatures = $numFeatures - $this->initialFeatures;
-        echo sprintf("%-6s run: %d (%4.0f/s), ft: %d (%4.0f/s), corpus: %d (%s), t: %.0fs\n",
+        echo sprintf("%-6s run: %d (%4.0f/s), ft: %d (%3.0f/s), corpus: %d (%s), t: %.0fs\n",
             $action, $this->runs, $this->runs / $time,
             $numFeatures, $numNewFeatures / $time,
             $this->corpus->getNumCorpusEntries(),

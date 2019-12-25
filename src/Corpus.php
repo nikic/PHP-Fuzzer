@@ -8,6 +8,11 @@ final class Corpus {
     /** @var CorpusEntry[] */
     private array $entries = [];
     private array $seenFeatures = [];
+
+    /** @var CorpusEntry[] $crashEntries */
+    private array $crashEntries = [];
+    private array $seenCrashFeatures = [];
+
     private int $len = 0;
 
     public function computeUniqueFeatures(CorpusEntry $entry) {
@@ -69,5 +74,21 @@ final class Corpus {
             $blocks[$targetBlock] = true;
         }
         return $blocks;
+    }
+
+    public function addCrashEntry(CorpusEntry $entry): bool {
+        // TODO: Also handle "absent feature"?
+        $hasNewFeature = false;
+        foreach ($entry->features as $feature => $_) {
+            if (!isset($this->seenCrashFeatures[$feature])) {
+                $hasNewFeature = true;
+                $this->seenCrashFeatures[$feature] = true;
+            }
+        }
+        if ($hasNewFeature) {
+            $this->crashEntries[] = $entry;
+            return true;
+        }
+        return false;
     }
 }
