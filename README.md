@@ -8,6 +8,15 @@ choice of "random" inputs, such that new code paths are visited. Many of the tec
 details of this fuzzer are based on [libFuzzer](https://llvm.org/docs/LibFuzzer.html)
 from the LLVM project.
 
+Installation
+------------
+
+**Phar (recommended)**: You can download a phar package of this library from the
+[releases page](https://github.com/nikic/PHP-Fuzzer/releases). Using the phar is recommended,
+because it avoids dependency conflicts with libraries using PHP-Parser.
+
+**Composer**: `composer global require nikic/php-fuzzer`
+
 Usage
 -----
 
@@ -75,5 +84,97 @@ php-fuzzer report-coverage target.php corpus/ coverage_dir/
 
 Additionally configuration options can be shown with `php-fuzzer --help`.
 
-> Note: In order to fuzz libraries that have a dependency on PHP-Parser, it is necessary to use
-> a prefixed phar. Run `box.phar compile` and then use `bin/php-fuzzer.phar`.
+Technical
+---------
+
+### Instrumentation
+
+To work efficiently, fuzzing requires feedback regarding the code-paths that were executed while testing a particular
+fuzzing input. This coverage feedback is collected by "instrumenting" the fuzzing target. The
+[interceptor](https://github.com/icewind1991/interceptor) library is used to transform the code of all included files
+on the fly. The [PHP-Parser](https://github.com/nikic/PHP-Parser) library is used to parse the code and find all the
+places where additional instrumentation code needs to be inserted.
+
+Inside every basic block, the following code is inserted, where `BLOCK_INDEX` is a unique, per-block integer:
+
+```php
+$___key = (\PhpFuzzer\FuzzingContext::$prevBlock << 28) | BLOCK_INDEX;
+\PhpFuzzer\FuzzingContext::$edges[$___key] = (\PhpFuzzer\FuzzingContext::$edges[$___key] ?? 0) + 1;
+\PhpFuzzer\FuzzingContext::$prevBlock = BLOCK_INDEX;
+```
+
+This assumes that the block index is at most 28-bit large and counts the number of `(prev_block, cur_block)` pairs
+that are observed during execution. The generated code is unfortunately fairly expensive, due to the need to deal with
+uninitialized edge counts, and the use of static properties. In the future, it would be possible to create a PHP
+extension that can collect the coverage feedback much more efficiently.
+
+In some cases, basic blocks are part of expressions, in which case we cannot easily insert additional code. In these
+cases we instead insert a call to a method that contains the above code:
+
+```php
+if ($foo && $bar) { ... }
+// becomes
+if ($foo && \PhpFuzzer\FuzzingContext::traceBlock(BLOCK_INDEX, $bar)) { ... }
+```
+
+In the future, it would be beneficial to also instrument comparisons, such that we can automatically determine
+dictionary entries from comparisons like `$foo == "SOME_STRING"`.
+
+### Features
+
+Fuzzing inputs are considered "interesting" if they contain new features that have not been observed with other inputs
+that are already part of the corpus. This library uses course-grained edge hit counts as features:
+
+    ft = (approx_hits << 56) | (prev_block << 28) | cur_block
+
+The approximate hit count reduces the actual hit count to 8 categories (based on AFL):
+
+    0: 0 hits
+    1: 1 hit
+    2: 2 hits
+    3: 3 hits
+    4: 4-7 hits
+    5: 8-15 hits
+    6: 16-127 hits
+    7: >=128 hits
+
+As such, each input is associated with a set of integers representing features. Additionally, it has a set of "unique
+features", which are features not seen in any other corpus inputs at the time the input was tested.
+
+If an input has unique features, then it is added to the corpus (NEW). If an input B was created by mutating an input A,
+but input B is shorter and has all the unique features of input A, then A is replaced by B in the corpus (REDUCE).
+
+### Mutation
+
+On each iteration, a random input from the current corpus is chosen, and then mutated using a sequence of mutators. The
+following mutators (taken from libFuzzer) are currently implemented:
+
+ * `EraseBytes`: Remove a number of bytes.
+ * `InsertByte`: Insert a new random byte.
+ * `InsertRepeatedBytes`: Insert a random byte repeated multiple times.
+ * `ChangeByte`: Replace a byte with a random byte.
+ * `ChangeBit`: Flip a single bit.
+ * `ShuffleBytes`: Shuffle a small substring.
+ * `ChangeASCIIInt`: Change an ASCII integer by incrementing/decrementing/doubling/halving.
+ * `CopyPart`: Copy part of the string into another part, either by overwriting or inserting.
+ * `CrossOver`: Cross over with another corpus entry with multiple strategies.
+ * `AddWordFromManualDictionary`: Insert or overwrite with a word from the dictionary (if any).
+
+Mutation is subject to a maximum length constrained. While an overall maximum length can be specified by the target
+(`setMaxLength()`), the fuzzer also performs automatic length control (`--len-control-factor`). The maximum length
+is initially set to a very low value and then increased by `log(maxlen)` whenever no action (NEW or REDUCE) has been
+taken for the last `len_control_factor * log(maxlen)` runs.
+
+The higher the length control factor, the more aggressively the fuzzer will explore short inputs before allowing longer
+inputs. This significantly reduces the size of the generated corpus, but makes initial exploration slower.
+
+Findings
+--------
+
+ * [tolerant-php-parser](https://github.com/microsoft/tolerant-php-parser):
+   [#305](https://github.com/microsoft/tolerant-php-parser/issues/305)
+ * [PHP-CSS-Parser](https://github.com/sabberworm/PHP-CSS-Parser):
+   [#181](https://github.com/sabberworm/PHP-CSS-Parser/issues/181)
+   [#182](https://github.com/sabberworm/PHP-CSS-Parser/issues/182)
+   [#183](https://github.com/sabberworm/PHP-CSS-Parser/issues/183)
+   [#184](https://github.com/sabberworm/PHP-CSS-Parser/issues/184)
