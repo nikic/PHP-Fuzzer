@@ -2,7 +2,13 @@
 
 /** @var PhpFuzzer\Fuzzer $fuzzer */
 
-require __DIR__ . '/PHP-CSS-Parser/vendor/autoload.php';
+$autoload = __DIR__ . '/PHP-CSS-Parser/vendor/autoload.php';
+if (!file_exists($autoload)) {
+    echo "Cannot find PHP-CSS-Parser installation in " . __DIR__ . "/PHP-CSS_Parser\n";
+    exit(1);
+}
+
+require $autoload;
 
 $fuzzer->setTarget(function(string $input) {
     $parser = new Sabberworm\CSS\Parser($input);

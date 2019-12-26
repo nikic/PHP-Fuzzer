@@ -54,7 +54,13 @@ final class Fuzzer {
         // Instrument everything apart from our src/ directory.
         $this->interceptor = new Interceptor();
         $this->interceptor->addWhiteList('');
+        var_dump(__DIR__);
         $this->interceptor->addBlackList(__DIR__);
+        // Don't intercept phar://.
+        // TODO: This would not be necessary if the filtering in interceptor actually worked.
+        (function() {
+            $this->protocols = ['file'];
+        })->call($this->interceptor);
         $this->interceptor->addHook(function(string $code, string $path) {
             $fileInfo = new FileInfo();
             $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
