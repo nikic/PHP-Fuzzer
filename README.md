@@ -4,9 +4,7 @@ PHP Fuzzer
 This library implements a [fuzzer](https://en.wikipedia.org/wiki/Fuzzing) for PHP,
 which can be used to find bugs in libraries (particularly parsing libraries) by feeding
 them "random" inputs. Feedback from edge coverage instrumentation is used to guide the
-choice of "random" inputs, such that new code paths are visited. Many of the technical
-details of this fuzzer are based on [libFuzzer](https://llvm.org/docs/LibFuzzer.html)
-from the LLVM project.
+choice of "random" inputs, such that new code paths are visited.
 
 Installation
 ------------
@@ -52,7 +50,7 @@ The fuzzer is run against a corpus of initial "interesting" inputs, which can fo
 be seeded based on existing unit tests. One input is provided per file. However, we can
 also start from an empty corpus:
 
-```shell script
+```sh
 mkdir corpus/
 php-fuzzer fuzz target.php corpus/
 ```
@@ -84,8 +82,39 @@ php-fuzzer report-coverage target.php corpus/ coverage_dir/
 
 Additionally configuration options can be shown with `php-fuzzer --help`.
 
+Bug types
+---------
+
+The fuzzer by default detects three kinds of bugs:
+
+ * `Error` exceptions thrown by the fuzzing target. While `Exception` exceptions are considered a normal result for
+   malformed input, uncaught `Error` exceptions always indicate programming error. They are most commonly produced by
+   PHP itself, for example when calling a method on `null`.
+ * Thrown notices and warnings (unless they are suppressed). The fuzzer registers an error handler that converts these
+   to `Error` exceptions.
+ * Timeouts. If the target runs longer than the specified timeout (default: 3s), it is assumed that the target has gone
+   into an infinite loop. This is realized using `pcntl_alarm()` and an async signal handler that throws an `Error` on
+   timeout.
+
+Notably, none of these check whether the output of the target is correct, they only determine that the target does not
+misbehave egregiously. One way to check output correctness is to compare two different implementations that are supposed
+to produce identical results:
+
+```php
+$fuzzer->setTarget(function(string $input) use($parser1, $parser2) {
+    $result1 = $parser1->parse($input);
+    $result2 = $parser2->parse($input);
+    if ($result1 != $result2) {
+        throw new Error('Results do not match!');
+    }
+});
+```
+
 Technical
 ---------
+
+Many of the technical details of this fuzzer are based on [libFuzzer](https://llvm.org/docs/LibFuzzer.html)
+from the LLVM project. The following describes some of the implementation details.
 
 ### Instrumentation
 
