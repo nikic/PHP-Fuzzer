@@ -185,6 +185,7 @@ following mutators (taken from libFuzzer) are currently implemented:
  * `ChangeBit`: Flip a single bit.
  * `ShuffleBytes`: Shuffle a small substring.
  * `ChangeASCIIInt`: Change an ASCII integer by incrementing/decrementing/doubling/halving.
+ * `ChangeBinInt`: Change a binary integer by adding a small random amount.
  * `CopyPart`: Copy part of the string into another part, either by overwriting or inserting.
  * `CrossOver`: Cross over with another corpus entry with multiple strategies.
  * `AddWordFromManualDictionary`: Insert or overwrite with a word from the dictionary (if any).

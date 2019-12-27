@@ -22,7 +22,7 @@ final class Mutator {
             [$this, 'mutateChangeBit'],
             [$this, 'mutateShuffleBytes'],
             [$this, 'mutateChangeASCIIInt'],
-            //[$this, 'mutateChangeBinInt'],
+            [$this, 'mutateChangeBinInt'],
             [$this, 'mutateCopyPart'],
             [$this, 'mutateCrossOver'],
             [$this, 'mutateAddWordFromManualDictionary'],
@@ -162,6 +162,40 @@ final class Mutator {
         return \substr($str, 0, $beginPos)
             . $intStr
             . \substr($str, $endPos);
+    }
+
+    public function mutateChangeBinInt(string $str, int $maxLen): ?string {
+        $len = \strlen($str);
+        if ($len > $maxLen) {
+            return null;
+        }
+
+        $packCodes = [
+            'C' => 1,
+            'n' => 2, 'v' => 2,
+            'N' => 4, 'V' => 4,
+            'J' => 8, 'P' => 8,
+        ];
+        $packCode = $this->rng->randomElement(array_keys($packCodes));
+        $numBytes = $packCodes[$packCode];
+        if ($numBytes > $len) {
+            return null;
+        }
+
+        $pos = $this->rng->randomInt($len - $numBytes + 1);
+        if ($pos < 64 && $this->rng->randomInt(4) == 0) {
+            $int = $len;
+        } else {
+            $int = \unpack($packCode, $str, $pos)[1];
+            $add = $this->rng->randomIntRange(-10, 10);
+            $int += $add;
+            if ($add == 0 && $this->rng->randomBool()) {
+                $int = -$int;
+            }
+        }
+        return \substr($str, 0, $pos)
+             . \pack($packCode, $int)
+             . \substr($str, $pos + $numBytes);
     }
 
     private function copyPartOf(string $from, string $to): string {
