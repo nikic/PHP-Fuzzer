@@ -19,7 +19,7 @@ class MutatorTest extends TestCase {
                 if ($result === null) {
                     continue;
                 }
-                $this->assertTrue(\strlen($result) <= $maxLen, "$mutator[1]");
+                $this->assertTrue(\strlen($result) <= $maxLen, "$mutator[1] violated maximum length constraint");
             }
         }
     }
