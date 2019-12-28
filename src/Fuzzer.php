@@ -372,7 +372,7 @@ final class Fuzzer {
         $getOpt->addOperand(Operand::create('target', Operand::REQUIRED));
 
         $getOpt->addCommand(Command::create('fuzz', [$this, 'handleFuzzCommand'])
-            ->addOperand(Operand::create('corpus', Operand::REQUIRED))
+            ->addOperand(Operand::create('corpus', Operand::OPTIONAL))
             ->setDescription('Fuzz the target to find bugs'));
         $getOpt->addCommand(Command::create('minimize-crash', [$this, 'handleMinimizeCrashCommand'])
             ->addOperand(Operand::create('input', Operand::REQUIRED))
@@ -426,8 +426,23 @@ final class Fuzzer {
         $command->getHandler()($getOpt);
     }
 
+    private function createTemporaryCorpusDirectory(): string {
+        do {
+            $corpusDir = sys_get_temp_dir(). '/corpus-' . mt_rand();
+        } while (file_exists($corpusDir));
+        if (!@mkdir($corpusDir)) {
+            throw new \Exception("Failed to create temporary corpus directory $corpusDir");
+        }
+        return $corpusDir;
+    }
+
     private function handleFuzzCommand(GetOpt $getOpt) {
-        $this->setCorpusDir($getOpt->getOperand('corpus'));
+        $corpusDir = $getOpt->getOperand('corpus');
+        if ($corpusDir === null) {
+            $corpusDir = $this->createTemporaryCorpusDirectory();
+            echo "Using $corpusDir as corpus directory\n";
+        }
+        $this->setCorpusDir($corpusDir);
         $this->fuzz();
     }
 

@@ -47,11 +47,13 @@ $fuzzer->addDictionary('example/php.dict');
 ```
 
 The fuzzer is run against a corpus of initial "interesting" inputs, which can for example
-be seeded based on existing unit tests. One input is provided per file. However, we can
-also start from an empty corpus:
+be seeded based on existing unit tests. If no corpus is specified, a temporary corpus
+directory will be created instead.
 
-```sh
-mkdir corpus/
+```shell script
+# Run without initial corpus
+php-fuzzer fuzz target.php
+# Run with initial corpus (one input per file)
 php-fuzzer fuzz target.php corpus/
 ```
 
