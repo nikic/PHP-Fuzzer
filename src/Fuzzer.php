@@ -7,7 +7,8 @@ use GetOpt\Command;
 use GetOpt\GetOpt;
 use GetOpt\Operand;
 use GetOpt\Option;
-use Icewind\Interceptor\Interceptor;
+use Nikic\IncludeInterceptor\FileFilter;
+use Nikic\IncludeInterceptor\Interceptor;
 use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
 use PhpFuzzer\Mutation\Dictionary;
@@ -52,15 +53,14 @@ final class Fuzzer {
         $this->corpus = new Corpus();
 
         // Instrument everything apart from our src/ directory.
-        $this->interceptor = new Interceptor();
-        $this->interceptor->addWhiteList('');
-        $this->interceptor->addBlackList(__DIR__);
-        // Don't intercept phar://.
-        // TODO: This would not be necessary if the filtering in interceptor actually worked.
-        (function() {
-            $this->protocols = ['file'];
-        })->call($this->interceptor);
-        $this->interceptor->addHook(function(string $code, string $path) {
+        $fileFilter = FileFilter::createAllWhitelisted();
+        $fileFilter->addBlackList(__DIR__);
+        $this->interceptor = new Interceptor(function(string $path) use($fileFilter) {
+            if (!$fileFilter->test($path)) {
+                return null;
+            }
+
+            $code = file_get_contents($path);
             $fileInfo = new FileInfo();
             $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
             $this->fileInfos[$path] = $fileInfo;

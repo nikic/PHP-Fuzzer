@@ -122,9 +122,9 @@ from the LLVM project. The following describes some of the implementation detail
 
 To work efficiently, fuzzing requires feedback regarding the code-paths that were executed while testing a particular
 fuzzing input. This coverage feedback is collected by "instrumenting" the fuzzing target. The
-[interceptor](https://github.com/icewind1991/interceptor) library is used to transform the code of all included files
-on the fly. The [PHP-Parser](https://github.com/nikic/PHP-Parser) library is used to parse the code and find all the
-places where additional instrumentation code needs to be inserted.
+[include-interceptor](https://github.com/nikic/include-interceptor) library is used to transform the code of all
+included files on the fly. The [PHP-Parser](https://github.com/nikic/PHP-Parser) library is used to parse the code and
+find all the places where additional instrumentation code needs to be inserted.
 
 Inside every basic block, the following code is inserted, where `BLOCK_INDEX` is a unique, per-block integer:
 

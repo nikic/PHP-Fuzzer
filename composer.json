@@ -4,7 +4,7 @@
   "require": {
     "php": ">= 7.4",
     "nikic/php-parser": "^4.3",
-    "icewind/interceptor": "^0.3.0",
+    "nikic/include-interceptor": "^0.1",
     "ulrichsg/getopt-php": "^3.2"
   },
   "require-dev": {
