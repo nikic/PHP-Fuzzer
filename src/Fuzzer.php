@@ -73,7 +73,6 @@ final class Fuzzer {
             throw new \Exception('Target "' . $path . '" does not exist');
         }
 
-        $path = realpath($path);
         $this->targetPath = $path;
         $this->startInstrumentation();
         // Unbind $this and make it available as $fuzzer variable.
@@ -87,7 +86,6 @@ final class Fuzzer {
     }
 
     public function setCorpusDir(string $path): void {
-        $path = realpath($path); // TODO: Work around interceptor bug
         $this->corpusDir = $path;
         if (!is_dir($this->corpusDir)) {
             throw new \Exception('Corpus directory "' . $this->corpusDir . '" does not exist');
@@ -324,8 +322,7 @@ final class Fuzzer {
             throw new \Exception("Crash input \"$path\" does not exist");
         }
 
-        // TODO: realpath() works around a bug in interceptor!
-        $input = file_get_contents(realpath($path));
+        $input = file_get_contents($path);
         $entry = $this->runInput($input);
         if (!$entry->crashInfo) {
             throw new \Exception("Crash input did not crash");
@@ -452,7 +449,6 @@ final class Fuzzer {
             throw new \Exception('Input "' . $inputPath . '" does not exist');
         }
 
-        $inputPath = realpath($inputPath); // TODO: Workaround interceptor bug
         $input = file_get_contents($inputPath);
         $entry = $this->runInput($input);
         $entry->path = $inputPath;
