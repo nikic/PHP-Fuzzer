@@ -192,7 +192,9 @@ final class Fuzzer {
 
     private function runInput(string $input) {
         $this->runs++;
-        pcntl_alarm($this->timeout);
+        if (\extension_loaded('pcntl')) {
+            \pcntl_alarm($this->timeout);
+        }
         FuzzingContext::reset();
         $crashInfo = null;
         try {
@@ -472,10 +474,12 @@ final class Fuzzer {
     }
 
     private function setupTimeoutHandler(): void {
-        pcntl_signal(SIGALRM, function() {
-            throw new \Error("Timeout of {$this->timeout} seconds exceeded");
-        });
-        pcntl_async_signals(true);
+        if (\extension_loaded('pcntl')) {
+            \pcntl_signal(SIGALRM, function() {
+                throw new \Error("Timeout of {$this->timeout} seconds exceeded");
+            });
+            \pcntl_async_signals(true);
+        }
     }
 
     private function setupErrorHandler(): void {
