@@ -55,6 +55,9 @@ final class Fuzzer {
         // Instrument everything apart from our src/ directory.
         $fileFilter = FileFilter::createAllWhitelisted();
         $fileFilter->addBlackList(__DIR__);
+        // Only intercept file:// streams. Interception of phar:// streams may run into
+        // incorrect stat() handling during path resolution in PHP.
+        $protocols = ['file'];
         $this->interceptor = new Interceptor(function(string $path) use($fileFilter) {
             if (!$fileFilter->test($path)) {
                 return null;
@@ -65,7 +68,7 @@ final class Fuzzer {
             $instrumentedCode = $this->instrumentor->instrument($code, $fileInfo);
             $this->fileInfos[$path] = $fileInfo;
             return $instrumentedCode;
-        });
+        }, $protocols);
     }
 
     private function loadTarget(string $path): void {
