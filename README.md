@@ -210,3 +210,5 @@ Findings
    [#182](https://github.com/sabberworm/PHP-CSS-Parser/issues/182)
    [#183](https://github.com/sabberworm/PHP-CSS-Parser/issues/183)
    [#184](https://github.com/sabberworm/PHP-CSS-Parser/issues/184)
+ * [league/uri](https://github.com/thephpleague/uri):
+   [#150](https://github.com/thephpleague/uri/issues/150)
