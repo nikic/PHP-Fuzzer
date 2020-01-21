@@ -212,3 +212,7 @@ Findings
    [#184](https://github.com/sabberworm/PHP-CSS-Parser/issues/184)
  * [league/uri](https://github.com/thephpleague/uri):
    [#150](https://github.com/thephpleague/uri/issues/150)
+ * [amphp/http-client](https://github.com/amphp/http-client)
+   [#236](https://github.com/amphp/http-client/issues/236)
+ * [amphp/hpack](https://github.com/amphp/hpack)
+   [#8](https://github.com/amphp/hpack/issues/8)
