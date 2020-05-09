@@ -24,4 +24,11 @@ final class CorpusEntry {
         }
         return true;
     }
+
+    public function storeAtPath(string $path): void {
+        assert($this->path === null);
+        $this->path = $path;
+        $result = file_put_contents($this->path, $this->input);
+        assert($result === \strlen($this->input));
+    }
 }

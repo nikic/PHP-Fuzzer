@@ -137,8 +137,7 @@ final class Fuzzer {
                 $entry = $this->runInput($input);
                 if ($entry->crashInfo) {
                     if ($this->corpus->addCrashEntry($entry)) {
-                        $entry->path = $this->outputDir . '/crash-' . md5($entry->input) . '.txt';
-                        file_put_contents($entry->path, $entry->input);
+                        $entry->storeAtPath($this->outputDir . '/crash-' . md5($entry->input) . '.txt');
                         $this->printCrash('CRASH', $entry);
                     } else {
                         echo "DUPLICATE CRASH\n";
@@ -153,9 +152,7 @@ final class Fuzzer {
                 $this->corpus->computeUniqueFeatures($entry);
                 if ($entry->uniqueFeatures) {
                     $this->corpus->addEntry($entry);
-
-                    $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
-                    file_put_contents($entry->path, $entry->input);
+                    $entry->storeAtPath($this->corpusDir . '/' . md5($entry->input) . '.txt');
 
                     $this->lastInterestingRun = $this->runs;
                     $this->printAction('NEW', $entry);
@@ -172,8 +169,7 @@ final class Fuzzer {
                     $this->corpus->replaceEntry($origEntry, $entry);
 
                     // TODO: Refactor corpus storage.
-                    $entry->path = $this->corpusDir . '/' . md5($entry->input) . '.txt';
-                    file_put_contents($entry->path, $entry->input);
+                    $entry->storeAtPath($this->corpusDir . '/' . md5($entry->input) . '.txt');
                     unlink($origEntry->path);
 
                     $this->lastInterestingRun = $this->runs;
@@ -345,8 +341,7 @@ final class Fuzzer {
                 continue;
             }
 
-            $entry->path = getcwd() . '/minimized-' . md5($newInput) . '.txt';
-            file_put_contents($entry->path, $newInput);
+            $entry->storeAtPath(getcwd() . '/minimized-' . md5($newInput) . '.txt');
 
             $len = \strlen($newInput);
             $this->printCrash("CRASH with length $len", $entry);
