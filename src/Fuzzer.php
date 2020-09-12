@@ -29,6 +29,7 @@ final class Fuzzer {
 
     private ?string $coverageDir = null;
     private array $fileInfos = [];
+    private ?string $lastInput = null;
 
     private int $runs = 0;
     private int $lastInterestingRun = 0;
@@ -193,6 +194,9 @@ final class Fuzzer {
         if (\extension_loaded('pcntl')) {
             \pcntl_alarm($this->timeout);
         }
+
+        // Remember the last input in case PHP generates a fatal error.
+        $this->lastInput = $input;
         FuzzingContext::reset();
         $crashInfo = null;
         try {
@@ -417,6 +421,7 @@ final class Fuzzer {
 
         $this->setupTimeoutHandler();
         $this->setupErrorHandler();
+        $this->setupShutdownHandler();
         $this->loadTarget($getOpt->getOperand('target'));
 
         $command->getHandler()($getOpt);
@@ -487,6 +492,22 @@ final class Fuzzer {
 
             throw new \Error(sprintf(
                 '[%d] %s in %s on line %d', $errno, $errstr, $errfile, $errline));
+        });
+    }
+
+    private function setupShutdownHandler(): void {
+        // If a fatal error occurs, at least recover the crashing input.
+        // TODO: We could support fork mode to continue fuzzing after this (and allow minimization).
+        register_shutdown_function(function() {
+            $error = error_get_last();
+            if ($error === null || $error['type'] != E_ERROR) {
+                return;
+            }
+
+            $crashInfo = "Fatal error: {$error['message']} in {$error['file']} on line {$error['line']}";
+            $entry = new CorpusEntry($this->lastInput, [], $crashInfo);
+            $entry->storeAtPath($this->outputDir . '/crash-' . $entry->hash . '.txt');
+            $this->printCrash('CRASH', $entry);
         });
     }
 }
