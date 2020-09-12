@@ -6,7 +6,9 @@ use PhpFuzzer\Mutation\RNG;
 
 final class Corpus {
     /** @var CorpusEntry[] */
-    private array $entries = [];
+    private array $entriesByHash = [];
+    /** @var CorpusEntry[] Only used to get a random element. */
+    private array $entriesByIndex = [];
     private array $seenFeatures = [];
 
     /** @var CorpusEntry[] $crashEntries */
@@ -26,7 +28,8 @@ final class Corpus {
     }
 
     public function addEntry(CorpusEntry $entry): void {
-        $this->entries[] = $entry;
+        $this->entriesByHash[$entry->hash] = $entry;
+        $this->entriesByIndex[] = $entry;
         foreach ($entry->uniqueFeatures as $feature => $_) {
             $this->seenFeatures[$feature] = true;
         }
@@ -35,23 +38,32 @@ final class Corpus {
         $this->maxLen = max($this->maxLen, $len);
     }
 
-    public function replaceEntry(CorpusEntry $origEntry, CorpusEntry $newEntry): void {
-        $idx = array_search($origEntry, $this->entries); // TODO: Optimize
-        $this->entries[$idx] = $newEntry;
+    // Returns whether the new entry has been added. The old one will always be removed.
+    public function replaceEntry(CorpusEntry $origEntry, CorpusEntry $newEntry): bool {
+        unset($this->entriesByHash[$origEntry->hash]);
+        $this->entriesByIndex = array_values($this->entriesByHash); // TODO optimize
+        if (isset($this->entriesByHash[$newEntry->hash])) {
+            // The new entry is already part of the corpus, nothing to do.
+            return false;
+        }
+
+        $this->entriesByHash[$newEntry->hash] = $newEntry;
+        $this->entriesByIndex[] = $newEntry;
         $this->totalLen -= \strlen($origEntry->input);
         $this->totalLen += \strlen($newEntry->input);
+        return true;
     }
 
     public function getRandomEntry(RNG $rng): ?CorpusEntry {
-        if (empty($this->entries)) {
+        if (empty($this->entriesByHash)) {
             return null;
         }
 
-        return $rng->randomElement($this->entries);
+        return $rng->randomElement($this->entriesByIndex);
     }
 
     public function getNumCorpusEntries(): int {
-        return \count($this->entries);
+        return \count($this->entriesByHash);
     }
 
     public function getNumFeatures(): int {

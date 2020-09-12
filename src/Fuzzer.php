@@ -137,7 +137,7 @@ final class Fuzzer {
                 $entry = $this->runInput($input);
                 if ($entry->crashInfo) {
                     if ($this->corpus->addCrashEntry($entry)) {
-                        $entry->storeAtPath($this->outputDir . '/crash-' . md5($entry->input) . '.txt');
+                        $entry->storeAtPath($this->outputDir . '/crash-' . $entry->hash . '.txt');
                         $this->printCrash('CRASH', $entry);
                     } else {
                         echo "DUPLICATE CRASH\n";
@@ -152,7 +152,7 @@ final class Fuzzer {
                 $this->corpus->computeUniqueFeatures($entry);
                 if ($entry->uniqueFeatures) {
                     $this->corpus->addEntry($entry);
-                    $entry->storeAtPath($this->corpusDir . '/' . md5($entry->input) . '.txt');
+                    $entry->storeAtPath($this->corpusDir . '/' . $entry->hash . '.txt');
 
                     $this->lastInterestingRun = $this->runs;
                     $this->printAction('NEW', $entry);
@@ -166,10 +166,9 @@ final class Fuzzer {
                     // Preserve unique features of original entry,
                     // even if they are not unique anymore at this point.
                     $entry->uniqueFeatures = $origEntry->uniqueFeatures;
-                    $this->corpus->replaceEntry($origEntry, $entry);
-
-                    // TODO: Refactor corpus storage.
-                    $entry->storeAtPath($this->corpusDir . '/' . md5($entry->input) . '.txt');
+                    if ($this->corpus->replaceEntry($origEntry, $entry)) {
+                        $entry->storeAtPath($this->corpusDir . '/' . $entry->hash . '.txt');
+                    }
                     unlink($origEntry->path);
 
                     $this->lastInterestingRun = $this->runs;

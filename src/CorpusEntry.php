@@ -4,6 +4,7 @@ namespace PhpFuzzer;
 
 final class CorpusEntry {
     public string $input;
+    public string $hash;
     public array $features;
     public ?string $crashInfo;
     public ?string $path;
@@ -11,6 +12,7 @@ final class CorpusEntry {
 
     public function __construct(string $input, array $features, ?string $crashInfo) {
         $this->input = $input;
+        $this->hash = \md5($input);
         $this->features = $features;
         $this->crashInfo = $crashInfo;
         $this->path = null;
