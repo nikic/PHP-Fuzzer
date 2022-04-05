@@ -22,12 +22,14 @@ final class Visitor extends NodeVisitorAbstract {
 
     public function leaveNode(Node $node) {
         // In these cases it is sufficient to insert a stub at the start.
-        if ($node instanceof Node\FunctionLike ||
+        if ($node instanceof Expr\Closure ||
             $node instanceof Stmt\Case_ ||
             $node instanceof Stmt\Catch_ ||
+            $node instanceof Stmt\ClassMethod ||
             $node instanceof Stmt\Else_ ||
             $node instanceof Stmt\ElseIf_ ||
             $node instanceof Stmt\Finally_ ||
+            $node instanceof Stmt\Function_ ||
             $node instanceof Stmt\While_
         ) {
             if ($node->stmts === null) {
@@ -73,6 +75,12 @@ final class Visitor extends NodeVisitorAbstract {
         // Same as previous case, just different subnode name.
         if ($node instanceof Expr\Ternary) {
             $this->insertTracingCall($node->else);
+            return null;
+        }
+
+        // Instrument call to arrow function.
+        if ($node instanceof Expr\ArrowFunction) {
+            $this->insertTracingCall($node->expr);
             return null;
         }
 
