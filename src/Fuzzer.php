@@ -344,10 +344,10 @@ final class Fuzzer {
                 continue;
             }
 
-            $entry->storeAtPath(getcwd() . '/minimized-' . md5($newInput) . '.txt');
+            $newEntry->storeAtPath(getcwd() . '/minimized-' . md5($newInput) . '.txt');
 
             $len = \strlen($newInput);
-            $this->printCrash("CRASH with length $len", $entry);
+            $this->printCrash("CRASH with length $len", $newEntry);
             $input = $newInput;
         }
     }
