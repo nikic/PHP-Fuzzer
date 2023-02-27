@@ -333,22 +333,24 @@ final class Fuzzer {
         }
 
         while ($this->runs < $this->maxRuns) {
-            // TODO: Mutation depth, etc.
-            $newInput = $this->mutator->mutate($input, $this->maxLen, null);
-            if (\strlen($newInput) >= \strlen($input)) {
-                continue;
+            $newInput = $input;
+            for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
+                $newInput = $this->mutator->mutate($newInput, $this->maxLen, null);
+                if (\strlen($newInput) >= \strlen($input)) {
+                    continue;
+                }
+
+                $newEntry = $this->runInput($newInput);
+                if (!$newEntry->crashInfo) {
+                    continue;
+                }
+
+                $newEntry->storeAtPath(getcwd() . '/minimized-' . md5($newInput) . '.txt');
+
+                $len = \strlen($newInput);
+                $this->printCrash("CRASH with length $len", $newEntry);
+                $input = $newInput;
             }
-
-            $newEntry = $this->runInput($newInput);
-            if (!$newEntry->crashInfo) {
-                continue;
-            }
-
-            $newEntry->storeAtPath(getcwd() . '/minimized-' . md5($newInput) . '.txt');
-
-            $len = \strlen($newInput);
-            $this->printCrash("CRASH with length $len", $newEntry);
-            $input = $newInput;
         }
     }
 
