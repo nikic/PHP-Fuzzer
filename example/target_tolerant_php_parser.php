@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-/** @var PhpFuzzer\Fuzzer $fuzzer */
+/** @var PhpFuzzer\Config $config */
 
 $autoload = __DIR__ . '/tolerant-php-parser/vendor/autoload.php';
 if (!file_exists($autoload)) {
@@ -12,9 +12,9 @@ require $autoload;
 
 $parser = new Microsoft\PhpParser\Parser();
 
-$fuzzer->setTarget(function(string $input) use($parser) {
+$config->setTarget(function(string $input) use($parser) {
     $parser->parseSourceFile($input);
 });
 
-$fuzzer->setMaxLen(1024);
-$fuzzer->addDictionary(__DIR__ . '/php.dict');
+$config->setMaxLen(1024);
+$config->addDictionary(__DIR__ . '/php.dict');

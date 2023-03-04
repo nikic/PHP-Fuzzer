@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-/** @var PhpFuzzer\Fuzzer $fuzzer */
+/** @var PhpFuzzer\Config $config */
 
 if (class_exists(PhpParser\Parser\Php7::class)) {
     echo "The PHP-Parser target can only be used with php-fuzzer.phar,\n";
@@ -19,11 +19,11 @@ require $autoload;
 $parser = new PhpParser\Parser\Php7(new PhpParser\Lexer);
 $prettyPrinter = new PhpParser\PrettyPrinter\Standard();
 
-$fuzzer->setTarget(function(string $input) use($parser, $prettyPrinter) {
+$config->setTarget(function(string $input) use($parser, $prettyPrinter) {
     $stmts = $parser->parse($input);
     $prettyPrinter->prettyPrintFile($stmts);
 });
 
-$fuzzer->setMaxLen(1024);
-$fuzzer->addDictionary(__DIR__ . '/php.dict');
-$fuzzer->setAllowedExceptions([PhpParser\Error::class]);
+$config->setMaxLen(1024);
+$config->addDictionary(__DIR__ . '/php.dict');
+$config->setAllowedExceptions([PhpParser\Error::class]);

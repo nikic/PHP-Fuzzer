@@ -23,8 +23,7 @@ final class Fuzzer {
     private string $outputDir;
     private Mutator $mutator;
     private RNG $rng;
-    private Dictionary $dictionary;
-    private \Closure $target;
+    private Config $config;
     public ?string $targetPath = null;
 
     private ?string $coverageDir = null;
@@ -37,10 +36,8 @@ final class Fuzzer {
     private float $startTime;
     private int $mutationDepthLimit = 5;
     private int $maxRuns = PHP_INT_MAX;
-    private int $maxLen = PHP_INT_MAX;
     private int $lenControlFactor = 200;
     private int $timeout = 3;
-    private array $allowedExceptions = [\Exception::class];
 
     // Counts all crashes, including duplicates
     private int $crashes = 0;
@@ -50,8 +47,8 @@ final class Fuzzer {
         $this->outputDir = getcwd();
         $this->instrumentor = new Instrumentor(FuzzingContext::class);
         $this->rng = new RNG();
-        $this->dictionary = new Dictionary();
-        $this->mutator = new Mutator($this->rng, $this->dictionary);
+        $this->config = new Config();
+        $this->mutator = new Mutator($this->rng, $this->config->dictionary);
         $this->corpus = new Corpus();
 
         // Instrument everything apart from our src/ directory.
@@ -80,14 +77,11 @@ final class Fuzzer {
 
         $this->targetPath = $path;
         $this->startInstrumentation();
-        // Unbind $this and make it available as $fuzzer variable.
-        (static function(Fuzzer $fuzzer) use($path) {
+        // Unbind $this and make config available as $config variable.
+        (static function(Config $config) use($path) {
+            $fuzzer = $config; // For backwards compatibility.
             require $path;
-        })($this);
-    }
-
-    public function setTarget(\Closure $target): void {
-        $this->target = $target;
+        })($this->config);
     }
 
     public function setCorpusDir(string $path): void {
@@ -101,27 +95,6 @@ final class Fuzzer {
         $this->coverageDir = $path;
     }
 
-    public function addDictionary(string $path): void {
-        if (!is_file($path)) {
-            throw new FuzzerException('Dictionary "' . $path . '" does not exist');
-        }
-
-        $parser = new DictionaryParser();
-        $this->dictionary->addWords($parser->parse(file_get_contents($path)));
-    }
-
-    public function setMaxLen(int $maxLen): void {
-        $this->maxLen = $maxLen;
-    }
-
-    /**
-     * Set which exceptions are not considered as fuzzing failures.
-     * Defaults to just "Exception", considering all "Errors" failures.
-     */
-    public function setAllowedExceptions(array $allowedExceptions): void {
-        $this->allowedExceptions = $allowedExceptions;
-    }
-
     public function startInstrumentation(): void {
         $this->interceptor->setUp();
     }
@@ -132,7 +105,7 @@ final class Fuzzer {
         }
 
         // Start with a short maximum length, increase if we fail to make progress.
-        $maxLen = min($this->maxLen, max(4, $this->corpus->getMaxLen()));
+        $maxLen = min($this->config->maxLen, max(4, $this->corpus->getMaxLen()));
 
         // Don't count runs while loading the corpus.
         $this->runs = 0;
@@ -187,11 +160,11 @@ final class Fuzzer {
                 }
             }
 
-            if ($maxLen < $this->maxLen) {
+            if ($maxLen < $this->config->maxLen) {
                 // Increase max length if we haven't made progress in a while.
                 $logMaxLen = (int) log($maxLen, 2);
                 if (($this->runs - $this->lastInterestingRun) > $this->lenControlFactor * $logMaxLen) {
-                    $maxLen = min($this->maxLen, $maxLen + $logMaxLen);
+                    $maxLen = min($this->config->maxLen, $maxLen + $logMaxLen);
                     $this->lastInterestingRun = $this->runs;
                 }
             }
@@ -199,7 +172,7 @@ final class Fuzzer {
     }
 
     private function isAllowedException(\Throwable $e): bool {
-        foreach ($this->allowedExceptions as $allowedException) {
+        foreach ($this->config->allowedExceptions as $allowedException) {
             if ($e instanceof $allowedException) {
                 return true;
             }
@@ -218,7 +191,7 @@ final class Fuzzer {
         FuzzingContext::reset();
         $crashInfo = null;
         try {
-            ($this->target)($input);
+            ($this->config->target)($input);
         } catch (\ParseError $e) {
             echo "PARSE ERROR $e\n";
             echo "INSTRUMENTATION BROKEN? -- ABORTING";
@@ -353,7 +326,7 @@ final class Fuzzer {
         while ($this->runs < $this->maxRuns) {
             $newInput = $input;
             for ($m = 0; $m < $this->mutationDepthLimit; $m++) {
-                $newInput = $this->mutator->mutate($newInput, $this->maxLen, null);
+                $newInput = $this->mutator->mutate($newInput, $this->config->maxLen, null);
                 if (\strlen($newInput) >= \strlen($input)) {
                     continue;
                 }

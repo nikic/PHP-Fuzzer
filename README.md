@@ -24,7 +24,7 @@ finding bugs in [microsoft/tolerant-php-parser](https://github.com/microsoft/tol
 ```php
 <?php // target.php
 
-/** @var PhpFuzzer\Fuzzer $fuzzer */
+/** @var PhpFuzzer\Config $config */
 
 require 'path/to/tolerant-php-parser/vendor/autoload.php';
 
@@ -32,18 +32,18 @@ require 'path/to/tolerant-php-parser/vendor/autoload.php';
 //           library. The target is allowed to throw normal Exceptions (which are ignored),
 //           but Error exceptions are considered as a found bug.
 $parser = new Microsoft\PhpParser\Parser();
-$fuzzer->setTarget(function(string $input) use($parser) {
+$config->setTarget(function(string $input) use($parser) {
     $parser->parseSourceFile($input);
 });
 
 // Optional: Many targets don't exhibit bugs on large inputs that can't also be
 //           produced with small inputs. Limiting the length may improve performance.
-$fuzzer->setMaxLen(1024);
+$config->setMaxLen(1024);
 // Optional: A dictionary can be used to provide useful fragments to the fuzzer,
 //           such as language keywords. This is particularly important if these
 //           cannot be easily discovered by the fuzzer, because they are handled
 //           by a non-instrumented PHP extension function such as token_get_all().
-$fuzzer->addDictionary('example/php.dict');
+$config->addDictionary('example/php.dict');
 ```
 
 The fuzzer is run against a corpus of initial "interesting" inputs, which can for example

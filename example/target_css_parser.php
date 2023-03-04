@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-/** @var PhpFuzzer\Fuzzer $fuzzer */
+/** @var PhpFuzzer\Config $config */
 
 $autoload = __DIR__ . '/PHP-CSS-Parser/vendor/autoload.php';
 if (!file_exists($autoload)) {
@@ -10,7 +10,7 @@ if (!file_exists($autoload)) {
 
 require $autoload;
 
-$fuzzer->setTarget(function(string $input) {
+$config->setTarget(function(string $input) {
     $parser = new Sabberworm\CSS\Parser($input);
     $parser->parse();
 });
