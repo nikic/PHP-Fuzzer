@@ -31,6 +31,8 @@ function test() {
     catch (E $y) {}
     finally { $a; }
     fn($x) => $x;
+    $x ?? $y;
+    $x ??= $y;
 }
 interface Foo {
     public function bar();
@@ -40,7 +42,7 @@ CODE;
         $expected = <<<'CODE'
 <?php
 function test() {
-    { $___key = (\InstrumentationContext::$prevBlock << 28) | 19; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 19; $x; }
+    { $___key = (\InstrumentationContext::$prevBlock << 28) | 21; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 21; $x; }
     if ($x && \InstrumentationContext::traceBlock(1, $y)) {
         { $___key = (\InstrumentationContext::$prevBlock << 28) | 3; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 3; \InstrumentationContext::traceBlock(2, yield $x); }
     } $___key = (\InstrumentationContext::$prevBlock << 28) | 4; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 4;
@@ -60,6 +62,8 @@ function test() {
     catch (E $y) { $___key = (\InstrumentationContext::$prevBlock << 28) | 15; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 15; }
     finally { { $___key = (\InstrumentationContext::$prevBlock << 28) | 16; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 16; $a; } } $___key = (\InstrumentationContext::$prevBlock << 28) | 17; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 17;
     fn($x) => \InstrumentationContext::traceBlock(18, $x);
+    $x ?? \InstrumentationContext::traceBlock(19, $y);
+    $x ??= \InstrumentationContext::traceBlock(20, $y);
 }
 interface Foo {
     public function bar();

@@ -65,8 +65,7 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Expr\BinaryOp\BooleanOr ||
             $node instanceof Expr\BinaryOp\LogicalAnd ||
             $node instanceof Expr\BinaryOp\LogicalOr ||
-            $node instanceof Expr\BinaryOp\Coalesce ||
-            $node instanceof Expr\AssignOp\Coalesce
+            $node instanceof Expr\BinaryOp\Coalesce
         ) {
             $this->insertTracingCall($node->right);
             return null;
@@ -75,6 +74,12 @@ final class Visitor extends NodeVisitorAbstract {
         // Same as previous case, just different subnode name.
         if ($node instanceof Expr\Ternary) {
             $this->insertTracingCall($node->else);
+            return null;
+        }
+
+        // Same as previous case, just different subnode name.
+        if ($node instanceof Expr\AssignOp\Coalesce) {
+            $this->insertTracingCall($node->expr);
             return null;
         }
 
