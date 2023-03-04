@@ -40,6 +40,7 @@ final class Fuzzer {
     private int $maxLen = PHP_INT_MAX;
     private int $lenControlFactor = 200;
     private int $timeout = 3;
+    private array $allowedExceptions = [\Exception::class];
 
     // Counts all crashes, including duplicates
     private int $crashes = 0;
@@ -111,6 +112,14 @@ final class Fuzzer {
 
     public function setMaxLen(int $maxLen): void {
         $this->maxLen = $maxLen;
+    }
+
+    /**
+     * Set which exceptions are not considered as fuzzing failures.
+     * Defaults to just "Exception", considering all "Errors" failures.
+     */
+    public function setAllowedExceptions(array $allowedExceptions): void {
+        $this->allowedExceptions = $allowedExceptions;
     }
 
     public function startInstrumentation(): void {
@@ -189,6 +198,15 @@ final class Fuzzer {
         }
     }
 
+    private function isAllowedException(\Throwable $e): bool {
+        foreach ($this->allowedExceptions as $allowedException) {
+            if ($e instanceof $allowedException) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function runInput(string $input) {
         $this->runs++;
         if (\extension_loaded('pcntl')) {
@@ -201,14 +219,14 @@ final class Fuzzer {
         $crashInfo = null;
         try {
             ($this->target)($input);
-        } catch (\Exception $e) {
-            // Assume that exceptions are not an abnormal conditions.
         } catch (\ParseError $e) {
             echo "PARSE ERROR $e\n";
             echo "INSTRUMENTATION BROKEN? -- ABORTING";
             exit(-1);
-        } catch (\Error $e) {
-            $crashInfo = (string) $e;
+        } catch (\Throwable $e) {
+            if (!$this->isAllowedException($e)) {
+                $crashInfo = (string) $e;
+            }
         }
 
         $features = $this->edgeCountsToFeatures(FuzzingContext::$edges);
