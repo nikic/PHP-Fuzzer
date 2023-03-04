@@ -13,4 +13,4 @@ foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php
 }
 
 $fuzzer = new Fuzzer();
-$fuzzer->handleCliArgs();
+exit($fuzzer->handleCliArgs());

@@ -75,7 +75,7 @@ final class Fuzzer {
 
     private function loadTarget(string $path): void {
         if (!is_file($path)) {
-            throw new \Exception('Target "' . $path . '" does not exist');
+            throw new FuzzerException('Target "' . $path . '" does not exist');
         }
 
         $this->targetPath = $path;
@@ -93,7 +93,7 @@ final class Fuzzer {
     public function setCorpusDir(string $path): void {
         $this->corpusDir = $path;
         if (!is_dir($this->corpusDir)) {
-            throw new \Exception('Corpus directory "' . $this->corpusDir . '" does not exist');
+            throw new FuzzerException('Corpus directory "' . $this->corpusDir . '" does not exist');
         }
     }
 
@@ -103,7 +103,7 @@ final class Fuzzer {
 
     public function addDictionary(string $path): void {
         if (!is_file($path)) {
-            throw new \Exception('Dictionary "' . $path . '" does not exist');
+            throw new FuzzerException('Dictionary "' . $path . '" does not exist');
         }
 
         $parser = new DictionaryParser();
@@ -332,7 +332,7 @@ final class Fuzzer {
 
     public function renderCoverage() {
         if ($this->coverageDir === null) {
-            throw new \Exception('Missing coverage directory');
+            throw new FuzzerException('Missing coverage directory');
         }
 
         $renderer = new CoverageRenderer($this->coverageDir);
@@ -341,13 +341,13 @@ final class Fuzzer {
 
     private function minimizeCrash(string $path) {
         if (!is_file($path)) {
-            throw new \Exception("Crash input \"$path\" does not exist");
+            throw new FuzzerException("Crash input \"$path\" does not exist");
         }
 
         $input = file_get_contents($path);
         $entry = $this->runInput($input);
         if (!$entry->crashInfo) {
-            throw new \Exception("Crash input did not crash");
+            throw new FuzzerException("Crash input did not crash");
         }
 
         while ($this->runs < $this->maxRuns) {
@@ -372,7 +372,7 @@ final class Fuzzer {
         }
     }
 
-    public function handleCliArgs() {
+    public function handleCliArgs(): int {
         $getOpt = new GetOpt([
             Option::create('h', 'help', GetOpt::NO_ARGUMENT)
                 ->setDescription('Display this help'),
@@ -410,19 +410,19 @@ final class Fuzzer {
         } catch (ArgumentException $e) {
             echo $e->getMessage() . PHP_EOL;
             echo PHP_EOL . $getOpt->getHelpText();
-            return;
+            return 1;
         }
 
         if ($getOpt->getOption('help')) {
             echo $getOpt->getHelpText();
-            return;
+            return 0;
         }
 
         $command = $getOpt->getCommand();
         if (!$command) {
             echo 'Missing command' . PHP_EOL;
             echo PHP_EOL . $getOpt->getHelpText();
-            return;
+            return 1;
         }
 
         $opts = $getOpt->getOptions();
@@ -444,7 +444,14 @@ final class Fuzzer {
         $this->setupTimeoutHandler();
         $this->setupErrorHandler();
         $this->setupShutdownHandler();
-        $command->getHandler()($getOpt);
+
+        try {
+            $command->getHandler()($getOpt);
+        } catch (FuzzerException $e) {
+            echo $e->getMessage() . PHP_EOL;
+            return 1;
+        }
+        return 0;
     }
 
     private function createTemporaryCorpusDirectory(): string {
@@ -452,7 +459,7 @@ final class Fuzzer {
             $corpusDir = sys_get_temp_dir(). '/corpus-' . mt_rand();
         } while (file_exists($corpusDir));
         if (!@mkdir($corpusDir)) {
-            throw new \Exception("Failed to create temporary corpus directory $corpusDir");
+            throw new FuzzerException("Failed to create temporary corpus directory $corpusDir");
         }
         return $corpusDir;
     }
@@ -470,7 +477,7 @@ final class Fuzzer {
     private function handleRunSingleCommand(GetOpt $getOpt) {
         $inputPath = $getOpt->getOperand('input');
         if (!is_file($inputPath)) {
-            throw new \Exception('Input "' . $inputPath . '" does not exist');
+            throw new FuzzerException('Input "' . $inputPath . '" does not exist');
         }
 
         $input = file_get_contents($inputPath);
