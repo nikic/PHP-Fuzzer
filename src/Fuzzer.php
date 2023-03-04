@@ -439,11 +439,11 @@ final class Fuzzer {
             $this->addDictionary($opts['dict']);
         }
 
+        $this->loadTarget($getOpt->getOperand('target'));
+
         $this->setupTimeoutHandler();
         $this->setupErrorHandler();
         $this->setupShutdownHandler();
-        $this->loadTarget($getOpt->getOperand('target'));
-
         $command->getHandler()($getOpt);
     }
 
@@ -520,7 +520,7 @@ final class Fuzzer {
         // TODO: We could support fork mode to continue fuzzing after this (and allow minimization).
         register_shutdown_function(function() {
             $error = error_get_last();
-            if ($error === null || $error['type'] != E_ERROR) {
+            if ($error === null || $error['type'] != E_ERROR || $this->lastInput === null) {
                 return;
             }
 
