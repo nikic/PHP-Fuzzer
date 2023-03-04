@@ -33,6 +33,10 @@ function test() {
     fn($x) => $x;
     $x ?? $y;
     $x ??= $y;
+    match ($x) {
+        1, 2 => $y,
+        default => $z,
+    };
 }
 interface Foo {
     public function bar();
@@ -42,7 +46,7 @@ CODE;
         $expected = <<<'CODE'
 <?php
 function test() {
-    { $___key = (\InstrumentationContext::$prevBlock << 28) | 21; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 21; $x; }
+    { $___key = (\InstrumentationContext::$prevBlock << 28) | 23; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 23; $x; }
     if ($x && \InstrumentationContext::traceBlock(1, $y)) {
         { $___key = (\InstrumentationContext::$prevBlock << 28) | 3; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 3; \InstrumentationContext::traceBlock(2, yield $x); }
     } $___key = (\InstrumentationContext::$prevBlock << 28) | 4; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 4;
@@ -64,6 +68,10 @@ function test() {
     fn($x) => \InstrumentationContext::traceBlock(18, $x);
     $x ?? \InstrumentationContext::traceBlock(19, $y);
     $x ??= \InstrumentationContext::traceBlock(20, $y);
+    match ($x) {
+        1, 2 => \InstrumentationContext::traceBlock(21, $y),
+        default => \InstrumentationContext::traceBlock(22, $z),
+    };
 }
 interface Foo {
     public function bar();

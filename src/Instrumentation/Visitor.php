@@ -89,6 +89,11 @@ final class Visitor extends NodeVisitorAbstract {
             return null;
         }
 
+        if ($node instanceof Node\MatchArm) {
+            $this->insertTracingCall($node->body);
+            return null;
+        }
+
         // Wrap the yield, so that a tracing call occurs after the yield resumes.
         if ($node instanceof Expr\Yield_ ||
             $node instanceof Expr\YieldFrom
