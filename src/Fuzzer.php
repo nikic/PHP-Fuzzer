@@ -408,17 +408,17 @@ final class Fuzzer {
         if (isset($opts['len-control-factor'])) {
             $this->lenControlFactor = (int) $opts['len-control-factor'];
         }
-        if (isset($opts['dict'])) {
-            $this->addDictionary($opts['dict']);
-        }
-
-        $this->loadTarget($getOpt->getOperand('target'));
-
-        $this->setupTimeoutHandler();
-        $this->setupErrorHandler();
-        $this->setupShutdownHandler();
 
         try {
+            if (isset($opts['dict'])) {
+                $this->config->addDictionary($opts['dict']);
+            }
+
+            $this->loadTarget($getOpt->getOperand('target'));
+
+            $this->setupTimeoutHandler();
+            $this->setupErrorHandler();
+            $this->setupShutdownHandler();
             $command->getHandler()($getOpt);
         } catch (FuzzerException $e) {
             echo $e->getMessage() . PHP_EOL;
