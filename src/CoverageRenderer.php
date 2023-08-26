@@ -67,6 +67,13 @@ final class CoverageRenderer {
             return '';
         }
 
+        if (\count($strings) === 1) {
+            // If there is only a single path, keep the base name by returning everything
+            // before it as the common prefix.
+            $baseName = basename($strings[0]);
+            return substr($strings[0], 0, -strlen($baseName));
+        }
+
         $prefix = $strings[0];
         foreach ($strings as $string) {
             $prefixLen = \strspn($prefix ^ $string, "\0");
