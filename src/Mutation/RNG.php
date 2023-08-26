@@ -7,7 +7,7 @@ final class RNG {
         return \mt_rand(0, $maxExclusive - 1);
     }
 
-    public function randomIntRange(int $minInclusive, $maxInclusive): int {
+    public function randomIntRange(int $minInclusive, int $maxInclusive): int {
         return \mt_rand($minInclusive, $maxInclusive);
     }
 
@@ -28,6 +28,11 @@ final class RNG {
         return $this->randomInt(\strlen($str) + 1);
     }
 
+    /**
+     * @template T
+     * @param list<T> $array
+     * @return T
+     */
     public function randomElement(array $array) {
         return $array[$this->randomInt(\count($array))];
     }

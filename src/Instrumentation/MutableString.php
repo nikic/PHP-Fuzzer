@@ -5,7 +5,7 @@ namespace PhpFuzzer\Instrumentation;
 /** String that can be modified without invalidating offsets into it */
 final class MutableString {
     private string $string;
-    // [[pos, len, newString, order]]
+    /** @var list<array{0: int, 1: int, 2: string, 3: int}> [[pos, len, newString, order]] */
     private array $modifications = [];
 
     public function __construct(string $string) {

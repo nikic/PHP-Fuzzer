@@ -138,7 +138,7 @@ final class Visitor extends NodeVisitorAbstract {
         } else if ($endChar === ':') {
             $this->context->code->insert($endPos + 1, " $stub");
         } else {
-            assert(false);
+            throw new \Error("Unexpected end char '$endChar'");
         }
     }
 

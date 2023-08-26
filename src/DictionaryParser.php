@@ -3,6 +3,9 @@
 namespace PhpFuzzer;
 
 final class DictionaryParser {
+    /**
+     * @return list<string>
+     */
     public function parse(string $code): array {
         $lines = explode("\n", $code);
         $dictionary = [];

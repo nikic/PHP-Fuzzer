@@ -8,6 +8,7 @@ namespace PhpFuzzer\Mutation;
 final class Mutator {
     private RNG $rng;
     private Dictionary $dictionary;
+    /** @var list<callable> */
     private array $mutators;
     private ?string $crossOverWith = null; // TODO: Get rid of this
 
@@ -29,6 +30,9 @@ final class Mutator {
         ];
     }
 
+    /**
+     * @return list<callable>
+     */
     public function getMutators(): array {
         return $this->mutators;
     }
@@ -151,7 +155,7 @@ final class Mutator {
                 $int <<= 1;
                 break;
             default:
-                assert(false);
+                throw new \Error("Cannot happen");
         }
 
         $intStr = (string) $int;
@@ -287,7 +291,7 @@ final class Mutator {
             case 2:
                 return $this->copyPartOf($this->crossOverWith, $str);
             default:
-                assert(false);
+                throw new \Error("Cannot happen");
         }
     }
 

@@ -27,6 +27,7 @@ final class Fuzzer {
     public ?string $targetPath = null;
 
     private ?string $coverageDir = null;
+    /** @var array<string, FileInfo> */
     private array $fileInfos = [];
     private ?string $lastInput = null;
 
@@ -180,7 +181,7 @@ final class Fuzzer {
         return false;
     }
 
-    private function runInput(string $input) {
+    private function runInput(string $input): CorpusEntry {
         $this->runs++;
         if (\extension_loaded('pcntl')) {
             \pcntl_alarm($this->timeout);
@@ -206,6 +207,10 @@ final class Fuzzer {
         return new CorpusEntry($input, $features, $crashInfo);
     }
 
+    /**
+     * @param array<int, int> $edgeCounts
+     * @return array<int, bool>
+     */
     private function edgeCountsToFeatures(array $edgeCounts): array {
         $features = [];
         foreach ($edgeCounts as $edge => $count) {
@@ -269,7 +274,7 @@ final class Fuzzer {
         return true;
     }
 
-    private function printAction(string $action, CorpusEntry $entry) {
+    private function printAction(string $action, CorpusEntry $entry): void {
         $time = microtime(true) - $this->startTime;
         $mem = memory_get_usage();
         $numFeatures = $this->corpus->getNumFeatures();
@@ -298,12 +303,12 @@ final class Fuzzer {
         }
     }
 
-    private function printCrash(string $prefix, CorpusEntry $entry) {
+    private function printCrash(string $prefix, CorpusEntry $entry): void {
         echo "$prefix in $entry->path!\n";
         echo $entry->crashInfo . "\n";
     }
 
-    public function renderCoverage() {
+    public function renderCoverage(): void {
         if ($this->coverageDir === null) {
             throw new FuzzerException('Missing coverage directory');
         }
@@ -312,7 +317,7 @@ final class Fuzzer {
         $renderer->render($this->fileInfos, $this->corpus->getSeenBlockMap());
     }
 
-    private function minimizeCrash(string $path) {
+    private function minimizeCrash(string $path): void {
         if (!is_file($path)) {
             throw new FuzzerException("Crash input \"$path\" does not exist");
         }
@@ -391,6 +396,7 @@ final class Fuzzer {
             return 0;
         }
 
+        /** @var Command|null $command The CommandInterface is missing the getHandler() method. */
         $command = $getOpt->getCommand();
         if (!$command) {
             echo 'Missing command' . PHP_EOL;
@@ -437,7 +443,7 @@ final class Fuzzer {
         return $corpusDir;
     }
 
-    private function handleFuzzCommand(GetOpt $getOpt) {
+    private function handleFuzzCommand(GetOpt $getOpt): void {
         $corpusDir = $getOpt->getOperand('corpus');
         if ($corpusDir === null) {
             $corpusDir = $this->createTemporaryCorpusDirectory();
@@ -447,7 +453,7 @@ final class Fuzzer {
         $this->fuzz();
     }
 
-    private function handleRunSingleCommand(GetOpt $getOpt) {
+    private function handleRunSingleCommand(GetOpt $getOpt): void {
         $inputPath = $getOpt->getOperand('input');
         if (!is_file($inputPath)) {
             throw new FuzzerException('Input "' . $inputPath . '" does not exist');
@@ -461,14 +467,14 @@ final class Fuzzer {
         }
     }
 
-    private function handleMinimizeCrashCommand(GetOpt $getOpt) {
+    private function handleMinimizeCrashCommand(GetOpt $getOpt): void {
         if ($this->maxRuns === PHP_INT_MAX) {
             $this->maxRuns = 100000;
         }
         $this->minimizeCrash($getOpt->getOperand('input'));
     }
 
-    private function handleReportCoverage(GetOpt $getOpt) {
+    private function handleReportCoverage(GetOpt $getOpt): void {
         $this->setCorpusDir($getOpt->getOperand('corpus'));
         $this->setCoverageDir($getOpt->getOperand('coverage-dir'));
         $this->loadCorpus();

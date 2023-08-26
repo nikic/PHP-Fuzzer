@@ -9,16 +9,16 @@ final class Corpus {
     private array $entriesByHash = [];
     /** @var CorpusEntry[] Only used to get a random element. */
     private array $entriesByIndex = [];
+    /** @var array<int, bool> */
     private array $seenFeatures = [];
 
-    /** @var CorpusEntry[] $crashEntries */
-    private array $crashEntries = [];
+    /** @var array<int, bool> */
     private array $seenCrashFeatures = [];
 
     private int $totalLen = 0;
     private int $maxLen = 0;
 
-    public function computeUniqueFeatures(CorpusEntry $entry) {
+    public function computeUniqueFeatures(CorpusEntry $entry): void {
         $entry->uniqueFeatures = [];
         foreach ($entry->features as $feature => $_) {
             if (!isset($this->seenFeatures[$feature])) {
@@ -78,6 +78,9 @@ final class Corpus {
         return $this->maxLen;
     }
 
+    /**
+     * @return array<int, bool>
+     */
     public function getSeenBlockMap(): array {
         $blocks = [];
         foreach ($this->seenFeatures as $feature => $_) {
@@ -96,10 +99,6 @@ final class Corpus {
                 $this->seenCrashFeatures[$feature] = true;
             }
         }
-        if ($hasNewFeature) {
-            $this->crashEntries[] = $entry;
-            return true;
-        }
-        return false;
+        return $hasNewFeature;
     }
 }

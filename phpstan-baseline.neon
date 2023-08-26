@@ -1,0 +1,26 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method PhpFuzzer\\\\Fuzzer\\:\\:handleFuzzCommand\\(\\) has parameter \\$getOpt with no value type specified in iterable type GetOpt\\\\GetOpt\\.$#"
+			count: 1
+			path: src/Fuzzer.php
+
+		-
+			message: "#^Method PhpFuzzer\\\\Fuzzer\\:\\:handleMinimizeCrashCommand\\(\\) has parameter \\$getOpt with no value type specified in iterable type GetOpt\\\\GetOpt\\.$#"
+			count: 1
+			path: src/Fuzzer.php
+
+		-
+			message: "#^Method PhpFuzzer\\\\Fuzzer\\:\\:handleReportCoverage\\(\\) has parameter \\$getOpt with no value type specified in iterable type GetOpt\\\\GetOpt\\.$#"
+			count: 1
+			path: src/Fuzzer.php
+
+		-
+			message: "#^Method PhpFuzzer\\\\Fuzzer\\:\\:handleRunSingleCommand\\(\\) has parameter \\$getOpt with no value type specified in iterable type GetOpt\\\\GetOpt\\.$#"
+			count: 1
+			path: src/Fuzzer.php
+
+		-
+			message: "#^Access to an undefined property PhpParser\\\\Node\\:\\:\\$stmts\\.$#"
+			count: 1
+			path: src/Instrumentation/Visitor.php

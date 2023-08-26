@@ -11,6 +11,7 @@ use PhpFuzzer\Mutation\Dictionary;
 class Config {
     public \Closure $target;
     public Dictionary $dictionary;
+    /** @var list<class-string<\Throwable>> */
     public array $allowedExceptions = [\Exception::class];
     public int $maxLen = PHP_INT_MAX;
 
@@ -28,6 +29,8 @@ class Config {
     /**
      * Set which exceptions are not considered as fuzzing failures.
      * Defaults to just "Exception", considering all "Errors" failures.
+     *
+     * @param list<class-string<\Throwable>> $allowedExceptions
      */
     public function setAllowedExceptions(array $allowedExceptions): void {
         $this->allowedExceptions = $allowedExceptions;

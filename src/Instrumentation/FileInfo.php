@@ -3,5 +3,6 @@
 namespace PhpFuzzer\Instrumentation;
 
 final class FileInfo {
+    /** @var array<int, int> */
     public array $blockIndexToPos = [];
 }

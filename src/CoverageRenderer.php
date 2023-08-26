@@ -11,7 +11,10 @@ final class CoverageRenderer {
         $this->outDir = $outDir;
     }
 
-    /** @param FileInfo[] $fileInfos */
+    /**
+     * @param FileInfo[] $fileInfos
+     * @param array<int, bool> $seenBlocks
+     */
     public function render(array $fileInfos, array $seenBlocks): void {
         @mkdir($this->outDir);
 
@@ -56,6 +59,9 @@ final class CoverageRenderer {
         file_put_contents($this->outDir . '/index.html', $overview);
     }
 
+    /**
+     * @param list<string> $strings
+     */
     private function getCommonPrefix(array $strings): string {
         if (empty($strings)) {
             return '';
