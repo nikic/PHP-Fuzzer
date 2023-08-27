@@ -20,7 +20,7 @@ final class CoverageRenderer {
 
         $overview = "<table>\n";
 
-        $prefix = $this->getCommonPrefix(array_keys($fileInfos));
+        $prefix = Util::getCommonPathPrefix(array_keys($fileInfos));
         ksort($fileInfos);
         foreach ($fileInfos as $path => $fileInfo) {
             $posToBlockIndex = array_flip($fileInfo->blockIndexToPos);
@@ -57,28 +57,5 @@ final class CoverageRenderer {
 
         $overview .= '</table>';
         file_put_contents($this->outDir . '/index.html', $overview);
-    }
-
-    /**
-     * @param list<string> $strings
-     */
-    private function getCommonPrefix(array $strings): string {
-        if (empty($strings)) {
-            return '';
-        }
-
-        if (\count($strings) === 1) {
-            // If there is only a single path, keep the base name by returning everything
-            // before it as the common prefix.
-            $baseName = basename($strings[0]);
-            return substr($strings[0], 0, -strlen($baseName));
-        }
-
-        $prefix = $strings[0];
-        foreach ($strings as $string) {
-            $prefixLen = \strspn($prefix ^ $string, "\0");
-            $prefix = \substr($prefix, 0, $prefixLen);
-        }
-        return $prefix;
     }
 }
