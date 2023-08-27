@@ -78,6 +78,8 @@
 "unset"
 "list"
 "callable"
+"enum"
+"readonly"
 "__class__"
 "__trait__"
 "__function__"
