@@ -38,6 +38,13 @@ function test() {
         1, 2 => $y,
         default => $z,
     };
+    switch ($x) {
+        case 1:
+        case 2:
+            $x;
+        default:
+            $x;
+    }
 }
 interface Foo {
     public function bar();
@@ -47,7 +54,7 @@ CODE;
         $expected = <<<'CODE'
 <?php
 function test() {
-    { $___key = (\InstrumentationContext::$prevBlock << 28) | 23; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 23; $x; }
+    { $___key = (\InstrumentationContext::$prevBlock << 28) | 27; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 27; $x; }
     if ($x && \InstrumentationContext::traceBlock(1, $y)) {
         { $___key = (\InstrumentationContext::$prevBlock << 28) | 3; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 3; \InstrumentationContext::traceBlock(2, yield $x); }
     } $___key = (\InstrumentationContext::$prevBlock << 28) | 4; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 4;
@@ -73,6 +80,13 @@ function test() {
         1, 2 => \InstrumentationContext::traceBlock(21, $y),
         default => \InstrumentationContext::traceBlock(22, $z),
     };
+    switch ($x) {
+        case 1: $___key = (\InstrumentationContext::$prevBlock << 28) | 23; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 23;
+        case 2:
+            { $___key = (\InstrumentationContext::$prevBlock << 28) | 24; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 24; $x; }
+        default:
+            { $___key = (\InstrumentationContext::$prevBlock << 28) | 25; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 25; $x; }
+    } $___key = (\InstrumentationContext::$prevBlock << 28) | 26; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 26;
 }
 interface Foo {
     public function bar();
@@ -108,6 +122,13 @@ CODE;
         1, 2 => !$y,
         default => !$z,
     };
+    switch ($x) {
+        !case 1:
+        !case 2:
+            $x;
+        !default:
+            $x;
+    !}
 }
 interface Foo {
     public function bar();
