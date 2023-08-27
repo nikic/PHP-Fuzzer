@@ -4,6 +4,7 @@ namespace PhpFuzzer;
 
 use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
+use PhpFuzzer\Instrumentation\MutableString;
 use PHPUnit\Framework\TestCase;
 
 class InstrumentorTest extends TestCase {
@@ -78,15 +79,55 @@ interface Foo {
 }
 CODE;
 
+        $expectedCoverage = <<<'CODE'
+<?php
+!function test() {
+    $x;
+    !if ($x && !$y) {
+        !yield $x;
+    !}
+    !if ($x)!;
+    !while ($x || !$y) {
+        $x;
+        !do {
+            $x;
+        } while ($x)!;
+    }
+    !for ($x; $x; $x) {
+        !foreach ($x as $x) {
+            $x;
+        !}
+    !}
+    try { $x; }
+    !catch (E $y) {}
+    !finally { $a; !}
+    fn($x) => !$x;
+    $x ?? !$y;
+    $x ??= !$y;
+    match ($x) {
+        1, 2 => !$y,
+        default => !$z,
+    };
+}
+interface Foo {
+    public function bar();
+}
+CODE;
+
         $instrumentor = new Instrumentor('InstrumentationContext');
         $fileInfo = new FileInfo();
         $output = $instrumentor->instrument($input, $fileInfo);
         $this->assertSame($expected, $output);
-        $this->assertNotEmpty($fileInfo->blockIndexToPos);
 
         // The number of lines should be preserved.
         $inputNewlines = substr_count($input, "\n");
         $outputNewlines = substr_count($output, "\n");
         $this->assertSame($inputNewlines, $outputNewlines);
+
+        $str = new MutableString($input);
+        foreach ($fileInfo->blockIndexToPos as $pos) {
+            $str->insert($pos, '!');
+        }
+        $this->assertSame($expectedCoverage, $str->getModifiedString());
     }
 }
