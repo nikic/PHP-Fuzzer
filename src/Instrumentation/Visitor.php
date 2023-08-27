@@ -27,8 +27,7 @@ final class Visitor extends NodeVisitorAbstract {
             $node instanceof Stmt\Else_ ||
             $node instanceof Stmt\ElseIf_ ||
             $node instanceof Stmt\Finally_ ||
-            $node instanceof Stmt\Function_ ||
-            $node instanceof Stmt\While_
+            $node instanceof Stmt\Function_
         ) {
             if ($node->stmts === null) {
                 return null;
@@ -42,7 +41,8 @@ final class Visitor extends NodeVisitorAbstract {
         if ($node instanceof Stmt\Do_ ||
             $node instanceof Stmt\If_ ||
             $node instanceof Stmt\For_ ||
-            $node instanceof Stmt\Foreach_
+            $node instanceof Stmt\Foreach_ ||
+            $node instanceof Stmt\While_
         ) {
             $this->insertInlineBlockStubInStmts($node);
             $this->appendInlineBlockStub($node);
