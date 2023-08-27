@@ -21,6 +21,8 @@ final class CoverageRenderer {
         $overview = "<table>\n";
 
         $prefix = Util::getCommonPathPrefix(array_keys($fileInfos));
+        $totalNumCovered = 0;
+        $totalNumTotal = 0;
         ksort($fileInfos);
         foreach ($fileInfos as $path => $fileInfo) {
             $posToBlockIndex = array_flip($fileInfo->blockIndexToPos);
@@ -53,8 +55,12 @@ final class CoverageRenderer {
                 <td>$numCovered/$numTotal</td>
             </tr>
             HTML;
+
+            $totalNumCovered += $numCovered;
+            $totalNumTotal += $numTotal;
         }
 
+        $overview .= "<tr><td>Total</td><td>$totalNumCovered/$totalNumTotal</td></tr>";
         $overview .= '</table>';
         file_put_contents($this->outDir . '/index.html', $overview);
     }
