@@ -13,7 +13,6 @@ use PhpParser\NodeVisitorAbstract;
  */
 final class Visitor extends NodeVisitorAbstract {
     private Context $context;
-    public ?FileInfo $fileInfo = null;
 
     public function __construct(Context $context) {
         $this->context = $context;
@@ -108,13 +107,6 @@ final class Visitor extends NodeVisitorAbstract {
 
     private function insertInlineBlockStubInStmts(Node $node): void {
         $stub = $this->generateInlineBlockStub($node->getStartFilePos());
-        if ($node instanceof Stmt\Do_) {
-            // do-while loops have odd structure, insert stub before the start,
-            // which is control-equivalent to within the do block.
-            $this->context->code->insert($node->getStartFilePos(), "$stub ");
-            return;
-        }
-
         $stmts = $node->stmts;
         if (!empty($stmts)) {
             /** @var Stmt $firstStmt */

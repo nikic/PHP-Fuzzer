@@ -61,8 +61,8 @@ function test() {
     if ($x){ $___key = (\InstrumentationContext::$prevBlock << 28) | 5; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 5; } $___key = (\InstrumentationContext::$prevBlock << 28) | 6; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 6;
     while ($x || \InstrumentationContext::traceBlock(7, $y)) {
         { $___key = (\InstrumentationContext::$prevBlock << 28) | 10; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 10; $x; }
-        $___key = (\InstrumentationContext::$prevBlock << 28) | 8; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 8; do {
-            $x;
+        do {
+            { $___key = (\InstrumentationContext::$prevBlock << 28) | 8; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 8; $x; }
         } while ($x); $___key = (\InstrumentationContext::$prevBlock << 28) | 9; \InstrumentationContext::$edges[$___key] = (\InstrumentationContext::$edges[$___key] ?? 0) + 1; \InstrumentationContext::$prevBlock = 9;
     }
     for ($x; $x; $x) {
