@@ -216,3 +216,6 @@ Findings
    [#236](https://github.com/amphp/http-client/issues/236)
  * [amphp/hpack](https://github.com/amphp/hpack)
    [#8](https://github.com/amphp/hpack/issues/8)
+ * [phpmyadmin/sql-parser](https://github.com/phpmyadmin/sql-parser):
+   [#508](https://github.com/phpmyadmin/sql-parser/issues/508)
+   [#510](https://github.com/phpmyadmin/sql-parser/pull/510)
