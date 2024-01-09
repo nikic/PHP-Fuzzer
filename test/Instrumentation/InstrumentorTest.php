@@ -5,6 +5,7 @@ namespace PhpFuzzer;
 use PhpFuzzer\Instrumentation\FileInfo;
 use PhpFuzzer\Instrumentation\Instrumentor;
 use PhpFuzzer\Instrumentation\MutableString;
+use PhpParser\PhpVersion;
 use PHPUnit\Framework\TestCase;
 
 class InstrumentorTest extends TestCase {
@@ -135,7 +136,8 @@ interface Foo {
 }
 CODE;
 
-        $instrumentor = new Instrumentor('InstrumentationContext');
+        $instrumentor = new Instrumentor(
+            'InstrumentationContext', PhpVersion::getNewestSupported());
         $fileInfo = new FileInfo();
         $output = $instrumentor->instrument($input, $fileInfo);
         $this->assertSame($expected, $output);

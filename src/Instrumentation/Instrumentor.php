@@ -2,23 +2,18 @@
 
 namespace PhpFuzzer\Instrumentation;
 
-use PhpParser\Lexer;
 use PhpParser\NodeTraverser;
 use PhpParser\Parser;
+use PhpParser\ParserFactory;
+use PhpParser\PhpVersion;
 
 final class Instrumentor {
     private Parser $parser;
     private NodeTraverser $traverser;
     private Context $context;
 
-    public function __construct(string $runtimeContextName) {
-        $this->parser = new Parser\Php7(new Lexer\Emulative([
-            'usedAttributes' => [
-                'comments',
-                'startLine', 'endLine',
-                'startFilePos', 'endFilePos',
-            ],
-        ]));
+    public function __construct(string $runtimeContextName, PhpVersion $phpVersion) {
+        $this->parser = (new ParserFactory())->createForVersion($phpVersion);
         $this->traverser = new NodeTraverser();
         $this->context = new Context($runtimeContextName);
         $this->traverser->addVisitor(new Visitor($this->context));

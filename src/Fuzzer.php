@@ -14,6 +14,7 @@ use PhpFuzzer\Instrumentation\Instrumentor;
 use PhpFuzzer\Mutation\Dictionary;
 use PhpFuzzer\Mutation\Mutator;
 use PhpFuzzer\Mutation\RNG;
+use PhpParser\PhpVersion;
 
 final class Fuzzer {
     private Interceptor $interceptor;
@@ -46,7 +47,8 @@ final class Fuzzer {
 
     public function __construct() {
         $this->outputDir = getcwd();
-        $this->instrumentor = new Instrumentor(FuzzingContext::class);
+        $this->instrumentor = new Instrumentor(
+            FuzzingContext::class, PhpVersion::getHostVersion());
         $this->rng = new RNG();
         $this->config = new Config();
         $this->mutator = new Mutator($this->rng, $this->config->dictionary);

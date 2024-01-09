@@ -3,7 +3,7 @@
   "license": "MIT",
   "require": {
     "php": ">= 7.4",
-    "nikic/php-parser": "^4.3",
+    "nikic/php-parser": "^5.0",
     "nikic/include-interceptor": "^0.1.1",
     "ulrichsg/getopt-php": "^4.0"
   },
