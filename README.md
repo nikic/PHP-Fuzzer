@@ -219,3 +219,5 @@ Findings
  * [phpmyadmin/sql-parser](https://github.com/phpmyadmin/sql-parser):
    [#508](https://github.com/phpmyadmin/sql-parser/issues/508)
    [#510](https://github.com/phpmyadmin/sql-parser/pull/510)
+ * [club-1/sphinx-inventory-parser](https://github.com/club-1/sphinx-inventory-parser):
+   [#7](https://github.com/club-1/sphinx-inventory-parser/pull/7)
