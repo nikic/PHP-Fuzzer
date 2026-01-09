@@ -140,7 +140,7 @@ final class Mutator {
             $endPos++;
         }
         // TODO: We won't be able to get large unsigned integers here.
-        $int = (int) \substr($str, $beginPos, $endPos - $beginPos);
+        $int = @(int) \substr($str, $beginPos, $endPos - $beginPos);
         switch ($this->rng->randomInt(4)) {
             case 0:
                 $int++;
