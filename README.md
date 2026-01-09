@@ -84,6 +84,20 @@ php-fuzzer report-coverage target.php corpus/ coverage_dir/
 
 Additionally configuration options can be shown with `php-fuzzer --help`.
 
+While the fuzzer is running, it reports its status continuously using a single line of output.
+This line comprises these parts in the following order:
+
+1. `NEW` or `REDUCED`: The action that triggered this status line. `NEW` indicates that a new input was added to the corpus while `REDUCED` indicates that an existing corpus entry was replaced with a shorter input.
+2. `run: N`: The total number of fuzzing iterations (target executions) performed since the fuzzer started
+3. `(N/s)`: The current execution speed, measured in runs per second
+4. `ft: N`: The total number of unique features discovered so far
+5. `(N/s)`: The average number of new features discovered per second since the fuzzer started
+6. `corp: N`: The number of interesting inputs currently stored in the corpus
+7. `(%s)`: The total size of all inputs in the corpus
+8. `len: %d/%d`: The first number is the length (in bytes) of the current input that triggered the action, the second number is the current maximum allowed input length
+9. `t`: The total elapsed time since the fuzzer started, in seconds
+10. `mem`: The current memory usage of the PHP process
+
 Bug types
 ---------
 
